@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM/Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf9; --surface: #ffffff; --surface2: #f4f4f3;
+    --border: #e5e5e3; --border-dark: #d0d0ce;
+    --text: #1a1a18; --text-2: #6b6b68; --text-3: #a8a8a5;
+    --green: #2d7a50; --green-bg: #f0faf4; --green-border: #b8e4c8;
+    --blue: #3050b0; --blue-bg: #f0f4ff; --blue-border: #c8d8ff;
+    --amber: #92580a; --amber-bg: #fef3c0; --amber-border: #fcd34d;
+    --red: #9b1c1c; --red-bg: #fee2e2; --red-border: #fca5a5;
+    --sans: 'Geist', system-ui, sans-serif; --mono: 'Geist Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── TOPBAR ── */
+  .topbar { height: 48px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+  .topbar-left { display: flex; align-items: center; gap: 1.25rem; }
+  .logo { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); }
+  .topbar-div { width: 1px; height: 16px; background: var(--border); }
+  .project-name { font-size: 13px; color: var(--text-2); }
+  .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--text-2); }
+  .tbtn { font-size: 12px; font-family: var(--sans); color: var(--text-2); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; cursor: pointer; height: 28px; display: flex; align-items: center; transition: all 0.15s; }
+  .tbtn:hover { border-color: var(--border-dark); color: var(--text); }
+
+  /* ── STEP NAV ── */
+  .step-nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: stretch; position: sticky; top: 48px; z-index: 90; flex-shrink: 0; }
+  .step-tab { display: flex; align-items: center; gap: 9px; padding: 0 1.5rem; height: 44px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; transition: background 0.15s; user-select: none; }
+  .step-tab:hover { background: var(--surface2); }
+  .step-tab.active { border-bottom-color: var(--text); }
+  .step-circle { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-dark); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-3); flex-shrink: 0; transition: all 0.2s; }
+  .step-tab.active .step-circle { background: var(--text); border-color: var(--text); color: white; }
+  .step-tab.done .step-circle { background: var(--green); border-color: var(--green); color: white; font-size: 11px; }
+  .step-tab-label { font-size: 13px; color: var(--text-2); transition: color 0.15s; }
+  .step-tab.active .step-tab-label { color: var(--text); font-weight: 500; }
+  .step-connector { display: flex; align-items: center; padding: 0 4px; color: var(--border-dark); font-size: 13px; pointer-events: none; }
+
+  /* ── LAYOUT ── */
+  .main { flex: 1; display: grid; grid-template-columns: 240px 1fr; min-height: 0; height: calc(100vh - 92px); }
+  .sidebar { border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; overflow-y: auto; position: sticky; top: 92px; height: calc(100vh - 92px); }
+  .sb-top { padding: 1.25rem; flex-shrink: 0; }
+  .sb-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.6rem; }
+  .sb-step-num { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 3px; }
+  .sb-step-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 0.75rem; }
+  .sb-desc { font-size: 12px; color: var(--text-2); line-height: 1.7; }
+  .sb-div { height: 1px; background: var(--border); }
+  .sb-io { padding: 1rem 1.25rem; }
+  .io-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .io-item { font-size: 12px; padding: 5px 9px; border-radius: 5px; display: flex; align-items: center; gap: 6px; }
+  .io-item.in { background: var(--surface2); color: var(--text-2); }
+  .io-item.out { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .io-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .io-item.in .io-dot { background: var(--text-3); }
+  .io-item.out .io-dot { background: var(--green); }
+  .sb-prog { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .prog-text { font-family: var(--mono); font-size: 11px; color: var(--text-3); display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .prog-wrap { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--text); border-radius: 2px; transition: width 0.4s ease; }
+
+  /* ── CONTENT ── */
+  .content-wrap { overflow-y: auto; display: flex; flex-direction: column; }
+  .step-panel { display: none; }
+  .step-panel.active { display: flex; flex-direction: column; flex: 1; }
+  .content { padding: 2rem 2.5rem; flex: 1; max-width: 900px; }
+  .ch { margin-bottom: 1.75rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .eyebrow { font-family: var(--mono); font-size: 11px; color: var(--text-3); letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+  .ctitle { font-size: 20px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .csub { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+  /* ── METRIC CARDS ── */
+  .card-row { display: grid; gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; }
+  .metric-label { font-family: var(--mono); font-size: 10px; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+  .metric-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+
+  /* ── SCHEDULE BANNER ── */
+  .sched-banner { background: var(--blue-bg); border: 1px solid var(--blue-border); border-radius: 8px; padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; gap: 12px; flex-wrap: wrap; }
+  .sched-left { display: flex; align-items: center; gap: 10px; }
+  .sched-text { font-size: 13px; color: #1e4080; }
+  .sched-meta { font-size: 11px; color: #4a72b8; margin-top: 2px; }
+  .sched-btns { display: flex; gap: 6px; flex-shrink: 0; }
+  .sched-btn { font-size: 11px; font-family: var(--sans); padding: 4px 10px; border-radius: 5px; border: 1px solid #a0bfee; background: white; color: #1e4080; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .sched-btn:hover { background: #e8f0ff; }
+  .sched-btn.run { background: #1e4080; color: white; border-color: #1e4080; }
+  .sched-btn.run:hover { opacity: 0.85; }
+
+  /* ── WORKSPACE ── */
+  .ws { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; }
+  .ws-header { padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); flex-wrap: wrap; gap: 8px; }
+  .ws-title { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .ws-body { padding: 1.1rem; }
+
+  /* ── INNER TABS ── */
+  .itabs { display: flex; border-bottom: 1px solid var(--border); }
+  .itab { font-size: 13px; font-family: var(--sans); padding: 8px 18px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-2); cursor: pointer; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+  .itab:hover { color: var(--text); }
+  .itab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+  .ipanel { display: none; }
+  .ipanel.active { display: block; }
+
+  /* ── BUTTONS ── */
+  .btn { font-size: 13px; font-family: var(--sans); padding: 7px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; transition: all 0.15s; height: 34px; display: inline-flex; align-items: center; gap: 5px; }
+  .btn:hover { border-color: var(--border-dark); color: var(--text); }
+  .btn.primary { background: var(--text); color: white; border-color: var(--text); font-weight: 500; }
+  .btn.primary:hover { opacity: 0.85; }
+  .btn.primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .ws-btn { font-size: 12px; font-family: var(--sans); padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; transition: all 0.15s; }
+  .ws-btn:hover { border-color: var(--border-dark); color: var(--text); }
+  .ws-btn.primary { background: var(--text) !important; color: white !important; border-color: var(--text) !important; font-weight: 500; }
+  .ws-btn.primary:hover { opacity: 0.85 !important; }
+  .ws-select { font-size: 12px; font-family: var(--sans); padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; outline: none; height: 28px; }
+
+  /* ── FORM ── */
+  .flabel { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 5px; }
+  .finput { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 11px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; resize: vertical; transition: border-color 0.15s; line-height: 1.55; }
+  .finput:focus { border-color: var(--border-dark); }
+  .finput::placeholder { color: var(--text-3); }
+  textarea.finput { min-height: 72px; }
+  select.finput { height: 36px; cursor: pointer; }
+
+  /* ── INSIGHT TABLE ── */
+  .ins-table { width: 100%; border-collapse: collapse; }
+  .ins-table th { font-family: var(--mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); background: var(--bg); font-weight: 500; }
+  .ins-table td { padding: 11px 14px; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+  .ins-table tr:last-child td { border-bottom: none; }
+  .ins-table tr:hover td { background: var(--bg); }
+  .del-btn { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; line-height: 1; transition: all 0.15s; }
+  .del-btn:hover { color: var(--red); background: var(--red-bg); }
+
+  /* ── BADGES ── */
+  .ai-badge { display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border) }
+  .out-num { font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:var(--surface2);color:var(--text-3);border:1px solid var(--border) }
+
+  /* ── RUN LOG ── */
+  .run-log { display: flex; flex-direction: column; gap: 8px; }
+  .run-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+  .run-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .run-dot.success { background: var(--green); }
+  .run-dot.upcoming { background: var(--border-dark); }
+  .run-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .run-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .run-badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-2); margin-left: auto; flex-shrink: 0; }
+
+  /* ── CHAT ── */
+  .chat-wrap { display: flex; flex-direction: column; height: 440px; }
+  .chat-msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 1rem; }
+  .chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+  .chat-msg.user { flex-direction: row-reverse; }
+  .chat-av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .chat-av.ai { background: #1a1a18; color: white; font-family: var(--mono); font-size: 12px; }
+  .chat-av.usr { background: #e8f0ff; color: #3050b0; }
+  .chat-bubble { max-width: 82%; padding: 9px 13px; border-radius: 10px; font-size: 13px; line-height: 1.65; }
+  .chat-msg.ai .chat-bubble { background: var(--surface2); color: var(--text); border-radius: 2px 10px 10px 10px; }
+  .chat-msg.user .chat-bubble { background: var(--text); color: white; border-radius: 10px 2px 10px 10px; }
+  .chat-bubble ul { margin: 6px 0 2px 16px; }
+  .chat-bubble li { margin-bottom: 4px; }
+  .chat-sugs { padding: 0.6rem 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px; }
+  .chat-sug { font-size: 12px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text-2); cursor: pointer; transition: all 0.15s; }
+  .chat-sug:hover { border-color: var(--border-dark); color: var(--text); background: var(--surface2); }
+  .chat-input-row { padding: 0.75rem 1rem; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-end; }
+  .chat-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; resize: none; min-height: 38px; max-height: 100px; transition: border-color 0.15s; line-height: 1.5; }
+  .chat-input:focus { border-color: var(--border-dark); }
+  .chat-input::placeholder { color: var(--text-3); }
+  .chat-send { width: 34px; height: 34px; border-radius: 7px; background: var(--text); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-send:hover { opacity: 0.8; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); animation: tp 1.2s ease-in-out infinite; }
+  .typing-dot:nth-child(2){animation-delay:0.2s} .typing-dot:nth-child(3){animation-delay:0.4s}
+  @keyframes tp { 0%,80%,100%{opacity:0.25;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+  /* ── PROBLEM CARDS ── */
+  .ps-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+  .ps-card.selected { border-color: var(--green); box-shadow: 0 0 0 3px rgba(45,122,80,0.1); }
+  .ps-card.dimmed { opacity: 0.45; pointer-events: none; }
+  .ps-card-head { display: flex; align-items: center; padding: 0.9rem 1.1rem; background: var(--bg); border-bottom: 1px solid var(--border); gap: 10px; transition: background 0.2s; }
+  .ps-card.selected .ps-card-head { background: var(--green-bg); }
+
+  /* radio select */
+  .ps-sel { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border-dark); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+  .ps-sel:hover { border-color: var(--green); }
+  .ps-sel.on { background: var(--green); border-color: var(--green); }
+  .ps-sel-dot { width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.15s; }
+  .ps-sel.on .ps-sel-dot { background: white; }
+
+  .ps-rank { font-family: var(--mono); font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+  .ps-title { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .ps-score-pill { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; cursor: default; }
+  .ps-score-num { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .ps-score-lbl { font-family: var(--mono); font-size: 10px; }
+
+  /* card body — MATCHES SCREENSHOT LAYOUT */
+  .ps-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1.1rem; }
+
+  /* Problem statement textarea */
+  .ps-stmt-label { font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+  .ps-stmt-wrap { position: relative; }
+  .ps-stmt { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 32px 10px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; resize: none; line-height: 1.65; min-height: 80px; transition: border-color 0.15s; }
+  .ps-stmt:focus { border-color: var(--border-dark); }
+  .ps-edit-icon { position: absolute; bottom: 8px; right: 8px; color: var(--text-3); font-size: 12px; pointer-events: none; }
+
+  /* Two-col row: segments + priority */
+  .ps-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+
+  /* Segments */
+  .ps-segs-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .ps-seg { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border); color: var(--text-2); background: var(--surface2); }
+  .ps-seg-x { cursor: pointer; opacity: 0.45; font-size: 13px; line-height: 1; transition: opacity 0.15s; }
+  .ps-seg-x:hover { opacity: 1; color: var(--red); }
+  .add-seg-btn { font-size: 12px; font-family: var(--sans); padding: 5px 12px; border-radius: 20px; border: 1px dashed var(--border-dark); background: none; color: var(--text-3); cursor: pointer; margin-top: 6px; transition: all 0.15s; }
+  .add-seg-btn:hover { border-color: var(--text-2); color: var(--text-2); }
+
+  /* Priority score sliders */
+  .score-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 6px; }
+  .score-row { display: grid; grid-template-columns: 110px 1fr 20px; align-items: center; gap: 10px; }
+  .score-label { font-size: 12px; color: var(--text-2); }
+  .score-bar-wrap { position: relative; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .score-bar-fill { height: 100%; background: var(--text); border-radius: 2px; transition: width 0.2s; }
+  .score-slider { width: 100%; cursor: pointer; accent-color: var(--text); opacity: 0; position: absolute; inset: -6px 0; height: 16px; }
+  .score-val { font-family: var(--mono); font-size: 11px; color: var(--text-2); text-align: right; }
+
+  /* Success metrics */
+  .ps-metrics-wrap { display: flex; flex-direction: column; gap: 7px; }
+  .ps-metric-row { display: flex; align-items: center; gap: 8px; }
+  .ps-metric-name { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .ps-metric-name:focus { border-color: var(--border-dark); }
+  .ps-metric-target { width: 160px; flex-shrink: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .ps-metric-target:focus { border-color: var(--border-dark); }
+  .add-metric-btn { width: 100%; padding: 7px; border: 1px dashed var(--border-dark); border-radius: 6px; background: none; font-size: 12px; color: var(--text-3); cursor: pointer; font-family: var(--sans); transition: all 0.15s; margin-top: 2px; }
+  .add-metric-btn:hover { border-color: var(--text-2); color: var(--text-2); background: var(--surface); }
+
+  /* ── SELECTION BANNER ── */
+  .sel-banner { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 8px; padding: 0.85rem 1.1rem; margin-bottom: 1rem; display: none; align-items: center; justify-content: space-between; gap: 12px; }
+  .sel-banner.show { display: flex; }
+
+  /* ── ACTION BAR ── */
+  .action-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 2.5rem; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .action-hint { font-size: 12px; color: var(--text-3); }
+  .action-btns { display: flex; gap: 8px; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; width: 480px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.10); }
+  .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 14px; font-weight: 500; }
+  .modal-close { background: none; border: none; font-size: 20px; color: var(--text-3); cursor: pointer; line-height: 1; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+  .modal-footer { padding: 0.9rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ── TAGS ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tag { display: inline-flex; align-items: center; font-size: 11px; padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); color: var(--text-2); background: var(--surface2); }
+
+  /* ── GTM ── */
+  .gtm-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1rem; }
+  .gtm-block-label { font-family: var(--mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; align-items: center; justify-content: space-between; }
+  .gtm-block-body { padding: 1rem 1.1rem; }
+  .gtm-text { font-size: 13px; color: var(--text); line-height: 1.75; }
+  .gtm-text p { margin-bottom: 10px; }
+  .gtm-text p:last-child { margin-bottom: 0; }
+  .gtm-text ul { margin: 8px 0 10px 18px; }
+  .gtm-text li { margin-bottom: 6px; }
+  .gtm-text strong { font-weight: 500; }
+  .gtm-pitch { font-size: 16px; font-weight: 500; color: var(--text); line-height: 1.55; letter-spacing: -0.01em; outline: none; border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; margin: -4px -8px; transition: border-color 0.15s; }
+  .gtm-pitch:hover { border-color: var(--border); }
+  .gtm-pitch:focus { border-color: var(--border-dark); background: var(--surface); }
+
+  /* Upload zone */
+  .upload-zone { border: 1.5px dashed var(--border-dark); border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--blue); background: var(--blue-bg); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+  .upload-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .upload-sub { font-size: 12px; color: var(--text-3); }
+  .upload-success { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+
+  /* Carry chip */
+  .carry-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 6px; background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); margin: 3px; }
+
+  /* Export doc */
+  .export-doc { font-family: var(--sans); padding: 1.5rem; background: white; border-radius: 8px; border: 1px solid var(--border); max-height: 420px; overflow-y: auto; }
+  .export-doc h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .export-doc h2 { font-size: 11px; font-weight: 500; color: var(--text-2); margin: 1.25rem 0 6px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); }
+  .export-doc p { font-size: 13px; color: #333; line-height: 1.7; margin-bottom: 8px; }
+  .export-doc ul { margin: 6px 0 10px 18px; }
+  .export-doc li { font-size: 13px; color: #333; line-height: 1.65; margin-bottom: 4px; }
+  .export-doc .divider { height: 1px; background: var(--border); margin: 1rem 0; }
+
+  /* PM Profile panel */
+  .profile-panel { position: fixed; right: 0; top: 48px; bottom: 0; width: 340px; background: var(--surface); border-left: 1px solid var(--border); z-index: 150; transform: translateX(100%); transition: transform 0.25s ease; display: flex; flex-direction: column; }
+  .profile-panel.open { transform: translateX(0); }
+  .profile-header { padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .profile-body { padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem; }
+  .profile-section { font-family: var(--mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.5rem; }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; font-size: 13px; padding: 10px 18px; border-radius: 8px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 999; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">PM/Flow</div>
+    <div class="topbar-div"></div>
+    <div class="project-name">New product initiative</div>
+  </div>
+  <div class="topbar-right">
+    <button class="tbtn" onclick="toggleProfile()">⚙ PM Profile</button>
+    <button class="tbtn">Share</button>
+    <div class="avatar">PM</div>
+  </div>
+</div>
+
+<div class="step-nav">
+  <div class="step-tab active" onclick="setStep(0)"><div class="step-circle" id="sc-0">1</div><span class="step-tab-label">Inbound</span></div>
+  <div class="step-connector">›</div>
+  <div class="step-tab" onclick="setStep(1)"><div class="step-circle" id="sc-1">2</div><span class="step-tab-label">GTM</span></div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sb-top">
+      <div class="sb-label">Current step</div>
+      <div class="sb-step-num" id="sb-num">Step 1 of 2</div>
+      <div class="sb-step-title" id="sb-title">Inbound understanding</div>
+      <div class="sb-desc" id="sb-desc">Capture insights, run scheduled analysis, and synthesise into ranked problem statements.</div>
+    </div>
+    <div class="sb-div"></div>
+    <div class="sb-io">
+      <div class="sb-label">Inputs</div>
+      <div class="io-list" id="sb-inputs"></div>
+    </div>
+    <div class="sb-div"></div>
+    <div class="sb-io">
+      <div class="sb-label">Outputs</div>
+      <div class="io-list" id="sb-outputs"></div>
+    </div>
+    <div class="sb-prog">
+      <div class="prog-text"><span>Progress</span><span id="prog-label">1 / 2</span></div>
+      <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:50%"></div></div>
+    </div>
+  </aside>
+
+  <div class="content-wrap">
+
+    <!-- ═══════════════════════════
+         STEP 1 · INBOUND
+    ═══════════════════════════ -->
+    <div class="step-panel active" id="panel-0">
+      <div class="content">
+        <div class="ch">
+          <div class="eyebrow">Step 01 · Inbound understanding</div>
+          <div class="ctitle">What insights are you capturing?</div>
+          <div class="csub">Capture customer feedback, support tickets, stakeholder requests, and market trends. Run a weekly digest automatically, or ask questions directly.</div>
+        </div>
+
+        <!-- METRICS -->
+        <div class="card-row" style="grid-template-columns:repeat(4,1fr)">
+          <div class="metric-card"><div class="metric-label">Insights</div><div class="metric-value" id="m-ins">9</div><div class="metric-sub">Captured</div></div>
+          <div class="metric-card"><div class="metric-label">Sources</div><div class="metric-value" id="m-src">5</div><div class="metric-sub">Distinct</div></div>
+          <div class="metric-card"><div class="metric-label">Problems</div><div class="metric-value">3</div><div class="metric-sub">Synthesised</div></div>
+          <div class="metric-card"><div class="metric-label">Next run</div><div class="metric-value" style="font-size:16px">Mon</div><div class="metric-sub">Weekly · 9:00 AM</div></div>
+        </div>
+
+        <!-- SCHEDULE BANNER -->
+        <div class="sched-banner">
+          <div class="sched-left">
+            <span style="font-size:16px">🔄</span>
+            <div>
+              <div class="sched-text"><strong>Weekly digest</strong> — refreshes every Monday at 9:00 AM</div>
+              <div class="sched-meta" id="sched-meta">Last run: Today at 9:02 AM · 9 insights · <span style="color:#4a9d6f">↑ 4 from last week</span></div>
+            </div>
+          </div>
+          <div class="sched-btns">
+            <button class="sched-btn" onclick="openModal('schedule-modal')">Edit schedule</button>
+            <button class="sched-btn run" id="run-btn" onclick="runNow()">▶ Run now</button>
+          </div>
+        </div>
+
+        <!-- INNER TABS -->
+        <div class="itabs">
+          <button class="itab active" onclick="s1Tab('insights')">Insights</button>
+          <button class="itab" onclick="s1Tab('outputs')">Outputs</button>
+          <button class="itab" onclick="s1Tab('schedule')">Schedule & history</button>
+          <button class="itab" onclick="s1Tab('ask')">Ask inbound ✦</button>
+        </div>
+
+        <!-- TAB: INSIGHTS -->
+        <div class="ipanel active" id="s1-insights">
+          <div class="ws" style="margin-top:1rem">
+            <div class="ws-header">
+              <div class="ws-title">Inbound insights</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select class="ws-select" id="filter-type" onchange="renderInsights()">
+                  <option value="all">All types</option>
+                  <option value="Ticket">Ticket</option>
+                  <option value="Request">Request</option>
+                  <option value="Market trend">Market trend</option>
+                  <option value="Feedback">Feedback</option>
+                </select>
+                <button class="ws-btn primary" onclick="openModal('add-modal')">+ Add insight</button>
+              </div>
+            </div>
+            <div id="ins-wrap"></div>
+          </div>
+        </div>
+
+        <!-- TAB: OUTPUTS -->
+        <div class="ipanel" id="s1-outputs">
+          <div style="margin-top:1rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div>
+                <div style="font-size:15px;font-weight:500">Problem statements</div>
+                <div style="font-size:12px;color:var(--text-2);margin-top:2px">3 problems synthesised from your inbound. Select one to carry into GTM.</div>
+              </div>
+            </div>
+
+            <div class="sel-banner" id="sel-banner">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:18px;color:var(--green)">✓</span>
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:#1a4a2e" id="sel-title">Problem selected</div>
+                  <div style="font-size:12px;color:var(--green)">This will carry into Step 2 — GTM</div>
+                </div>
+              </div>
+              <button class="btn primary" style="background:#1a4a2e;border-color:#1a4a2e" onclick="setStep(1)">Continue to GTM →</button>
+            </div>
+
+            <div id="ps-cards"></div>
+          </div>
+        </div>
+
+        <!-- TAB: SCHEDULE & HISTORY -->
+        <div class="ipanel" id="s1-schedule">
+          <div style="margin-top:1rem">
+            <div class="ws">
+              <div class="ws-header"><div class="ws-title">Schedule configuration</div><button class="ws-btn" onclick="openModal('schedule-modal')">Edit</button></div>
+              <div class="ws-body">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+                  <div><div class="flabel">Frequency</div><div style="font-size:14px;font-weight:500;margin-top:4px">Weekly</div><div style="font-size:11px;color:var(--text-3);margin-top:2px">Every Monday</div></div>
+                  <div><div class="flabel">Time</div><div style="font-size:14px;font-weight:500;margin-top:4px">9:00 AM</div><div style="font-size:11px;color:var(--text-3);margin-top:2px">Your timezone</div></div>
+                  <div><div class="flabel">Sources</div><div class="tag-row" style="margin-top:4px"><span class="tag">Support</span><span class="tag">Feedback</span><span class="tag">Requests</span><span class="tag">Market</span></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="ws">
+              <div class="ws-header"><div class="ws-title">Run history</div><div style="font-family:var(--mono);font-size:11px;color:var(--text-3)">Last 4 runs</div></div>
+              <div class="ws-body">
+                <div class="run-log">
+                  <div class="run-row"><div class="run-dot success"></div><div><div class="run-title">Weekly digest — Mon Apr 7, 2026</div><div class="run-meta">9 insights found · 4 new · 18 sources scanned · 1.4s</div></div><span class="run-badge">Completed</span></div>
+                  <div class="run-row"><div class="run-dot success"></div><div><div class="run-title">Weekly digest — Mon Mar 31, 2026</div><div class="run-meta">5 insights found · 2 new · 18 sources scanned · 1.1s</div></div><span class="run-badge">Completed</span></div>
+                  <div class="run-row"><div class="run-dot success"></div><div><div class="run-title">Weekly digest — Mon Mar 24, 2026</div><div class="run-meta">3 insights found · 1 new · 18 sources scanned · 0.9s</div></div><span class="run-badge">Completed</span></div>
+                  <div class="run-row"><div class="run-dot upcoming"></div><div><div class="run-title">Weekly digest — Mon Apr 14, 2026</div><div class="run-meta">Scheduled · Will scan all connected sources</div></div><span class="run-badge" style="color:var(--text-3)">Upcoming</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: ASK INBOUND -->
+        <div class="ipanel" id="s1-ask">
+          <div style="margin-top:1rem">
+            <div class="ws" style="overflow:hidden">
+              <div class="ws-header"><div class="ws-title">Ask inbound <span class="ai-badge">✦ AI</span></div><div style="font-size:12px;color:var(--text-3)">Powered by your captured insights</div></div>
+              <div class="chat-wrap">
+                <div class="chat-msgs" id="chat-msgs">
+                  <div class="chat-msg ai">
+                    <div class="chat-av ai">✦</div>
+                    <div class="chat-bubble">Hi! I've analysed your <strong>9 inbound insights</strong> across 5 sources. Ask me anything — segment feedback, insight patterns, or what to focus on next.</div>
+                  </div>
+                </div>
+                <div class="chat-sugs" id="chat-sugs">
+                  <button class="chat-sug" onclick="useSug(this)">What are the top pain points from enterprise users?</button>
+                  <button class="chat-sug" onclick="useSug(this)">Which insight has the highest urgency?</button>
+                  <button class="chat-sug" onclick="useSug(this)">Summarise all feedback insights</button>
+                  <button class="chat-sug" onclick="useSug(this)">What are market trends telling us?</button>
+                </div>
+                <div class="chat-input-row">
+                  <textarea class="chat-input" id="chat-input" placeholder='Ask e.g. "What should I prioritise this quarter?"' rows="1" onkeydown="handleChatKey(event)"></textarea>
+                  <button class="chat-send" onclick="sendChat()"><svg width="14" height="14" viewBox="0 0 16 16" fill="white"><path d="M1.5 1.5L14.5 8L1.5 14.5V9.5L10.5 8L1.5 6.5V1.5Z"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+
+      <div class="action-bar">
+        <div class="action-hint" id="s1-hint">Go to Outputs tab and select a problem to continue</div>
+        <div class="action-btns">
+          <button class="btn primary" id="s1-continue" onclick="setStep(1)" disabled>Select a problem to continue →</button>
+        </div>
+      </div>
+    </div><!-- /panel-0 -->
+
+
+    <!-- ═══════════════════════════
+         STEP 2 · GTM
+    ═══════════════════════════ -->
+    <div class="step-panel" id="panel-1">
+      <div class="content" style="max-width:860px">
+        <div class="ch">
+          <div class="eyebrow">Step 02 · GTM</div>
+          <div class="ctitle">How do we tell this story?</div>
+          <div class="csub">Build the narrative that helps PSO, sales, and operations explain this product clearly. Starts from your confirmed problem statement — add solution context and competitive analysis.</div>
+        </div>
+
+        <div class="itabs" id="gtm-tabs">
+          <button class="itab active" onclick="gtmTab('input')">Context input</button>
+          <button class="itab" onclick="gtmTab('output')">Narrative output</button>
+        </div>
+
+        <!-- TAB: CONTEXT INPUT -->
+        <div class="ipanel active" id="gtm-input" style="margin-top:1rem">
+
+          <!-- Carry-over -->
+          <div class="ws" style="margin-bottom:1rem">
+            <div class="ws-header">
+              <div class="ws-title">From Step 1 — Problem brief <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)">Auto-filled</span></div>
+              <button class="ws-btn" onclick="setStep(0)">← Edit in Inbound</button>
+            </div>
+            <div class="ws-body" style="display:flex;flex-direction:column;gap:10px">
+              <div>
+                <div class="flabel">Problem statement</div>
+                <div id="gtm-carry-stmt" style="font-size:13px;color:var(--text);line-height:1.65;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 11px;min-height:40px">—</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <div>
+                  <div class="flabel">Target segments</div>
+                  <div id="gtm-carry-segs" style="margin-top:4px"></div>
+                </div>
+                <div>
+                  <div class="flabel">Success metrics</div>
+                  <div id="gtm-carry-metrics" style="font-size:12px;color:var(--text-2);margin-top:4px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRD link -->
+          <div class="ws" style="margin-bottom:1rem">
+            <div class="ws-header">
+              <div class="ws-title">PRD <span class="ai-badge">PM links</span></div>
+            </div>
+            <div class="ws-body">
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.65">Paste your Lark PRD link. The solution description, supporting evidence, and any technical context will be read from the document — no need to re-enter them here.</div>
+              <div id="prd-idle">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="position:relative;flex:1">
+                    <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none">🔗</span>
+                    <input type="text" class="finput" id="prd-url" placeholder="https://bytedance.feishu.cn/docx/…" style="padding-left:34px" onkeydown="if(event.key==='Enter')readLark('prd')">
+                  </div>
+                  <button class="ws-btn primary" onclick="readLark('prd')" style="white-space:nowrap;flex-shrink:0">Read document →</button>
+                </div>
+              </div>
+              <div id="prd-reading" style="display:none;padding:0.75rem 0;display:none;align-items:center;gap:10px">
+                <div style="display:flex;gap:4px"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>
+                <span style="font-size:12px;color:var(--text-3)">Reading Lark document…</span>
+              </div>
+              <div id="prd-done" style="display:none" class="upload-success">
+                <span style="font-size:18px">✓</span>
+                <div style="flex:1">
+                  <div style="font-size:13px;font-weight:500;color:var(--green)" id="prd-doc-name">PRD loaded</div>
+                  <div style="font-size:12px;color:var(--text-2)" id="prd-doc-preview"></div>
+                </div>
+                <button class="ws-btn" onclick="removeLark('prd')" style="flex-shrink:0">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Competitive analysis — Lark link -->
+          <div class="ws" style="margin-bottom:1rem">
+            <div class="ws-header">
+              <div class="ws-title">Competitive analysis <span class="ai-badge">PM links</span></div>
+            </div>
+            <div class="ws-body">
+              <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;line-height:1.65">Paste your Lark competitive analysis link. AI will use it to sharpen the differentiation section of the narrative.</div>
+              <div id="comp-idle">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <div style="position:relative;flex:1">
+                    <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none">🔗</span>
+                    <input type="text" class="finput" id="comp-url" placeholder="https://bytedance.feishu.cn/docx/…" style="padding-left:34px" onkeydown="if(event.key==='Enter')readLark('comp')">
+                  </div>
+                  <button class="ws-btn primary" onclick="readLark('comp')" style="white-space:nowrap;flex-shrink:0">Read document →</button>
+                </div>
+              </div>
+              <div id="comp-reading" style="display:none;padding:0.75rem 0;display:none;align-items:center;gap:10px">
+                <div style="display:flex;gap:4px"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>
+                <span style="font-size:12px;color:var(--text-3)">Reading Lark document…</span>
+              </div>
+              <div id="comp-done" style="display:none" class="upload-success">
+                <span style="font-size:18px">✓</span>
+                <div style="flex:1">
+                  <div style="font-size:13px;font-weight:500;color:var(--green)" id="comp-doc-name">Competitive analysis loaded</div>
+                  <div style="font-size:12px;color:var(--text-2)" id="comp-doc-preview"></div>
+                </div>
+                <button class="ws-btn" onclick="removeLark('comp')" style="flex-shrink:0">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audience only -->
+          <div class="ws">
+            <div class="ws-header"><div class="ws-title">Narrative settings</div></div>
+            <div class="ws-body">
+              <label class="flabel">Primary audience for this narrative</label>
+              <select class="finput" id="gtm-audience" style="margin-top:2px">
+                <option selected>PSO (Product Strategy & Operations)</option>
+                <option>Sales team</option>
+                <option>Both PSO and Sales</option>
+                <option>External customers</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn primary" onclick="gtmTab('output');generateGTM()">✦ Generate narrative →</button>
+          </div>
+        </div>
+
+        <!-- TAB: NARRATIVE OUTPUT -->
+        <div class="ipanel" id="gtm-output" style="margin-top:1rem">
+          <div id="gtm-loader" style="display:none;text-align:center;padding:2rem">
+            <div style="display:flex;gap:5px;justify-content:center"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:8px">Generating GTM narrative…</div>
+          </div>
+
+          <div id="gtm-out-body" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text-2)">AI-generated narrative. Edit any section directly, then export to Lark doc.</div>
+              <div style="display:flex;gap:7px">
+                <button class="ws-btn" onclick="generateGTM()">✦ Re-generate</button>
+                <button class="ws-btn primary" onclick="openExport()">↓ Export to Lark doc</button>
+              </div>
+            </div>
+
+            <div class="gtm-block">
+              <div class="gtm-block-label"><span>One-line pitch</span><span class="out-num">Edit inline</span></div>
+              <div class="gtm-block-body"><div id="gtm-pitch" class="gtm-pitch" contenteditable="true"></div></div>
+            </div>
+
+            <div class="gtm-block">
+              <div class="gtm-block-label">Background — why this matters</div>
+              <div class="gtm-block-body"><div id="gtm-bg" class="gtm-text"></div></div>
+            </div>
+
+            <div class="gtm-block">
+              <div class="gtm-block-label"><span>What makes us different</span><span class="out-num">Edit inline</span></div>
+              <div class="gtm-block-body">
+                <div id="gtm-diff" class="gtm-text" contenteditable="true" style="outline:none;border:1px solid transparent;border-radius:6px;padding:4px 6px;margin:-4px -6px;transition:border-color 0.15s;min-height:32px" onfocus="this.style.borderColor='var(--border-dark)'" onblur="this.style.borderColor='transparent'"></div>
+              </div>
+            </div>
+
+            <div class="gtm-block">
+              <div class="gtm-block-label">What is this — core solution & value</div>
+              <div class="gtm-block-body"><div id="gtm-what" class="gtm-text"></div></div>
+            </div>
+
+            <div class="gtm-block">
+              <div class="gtm-block-label">FAQ</div>
+              <div class="gtm-block-body"><div id="gtm-faq" class="gtm-text"></div></div>
+            </div>
+          </div>
+
+          <div id="gtm-empty" style="text-align:center;padding:3rem;color:var(--text-3)">
+            <div style="font-size:32px;margin-bottom:8px">◎</div>
+            <div style="font-size:13px;color:var(--text-2);margin-bottom:4px">No narrative yet</div>
+            <div style="font-size:12px">Fill in context and click "Generate narrative"</div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+
+      <div class="action-bar">
+        <div class="action-hint" id="gtm-hint">Generate and review your narrative, then export to Lark</div>
+        <div class="action-btns">
+          <button class="btn" onclick="setStep(0)">← Back to Inbound</button>
+          <button class="btn primary" id="gtm-export-btn" onclick="openExport()" disabled>↓ Export to Lark doc</button>
+        </div>
+      </div>
+    </div><!-- /panel-1 -->
+
+  </div><!-- /content-wrap -->
+</div><!-- /main -->
+
+
+<!-- ═══════════════════════════
+     PM PROFILE PANEL
+═══════════════════════════ -->
+<div class="profile-panel" id="profile-panel">
+  <div class="profile-header">
+    <div style="font-size:14px;font-weight:500">PM Profile</div>
+    <button class="modal-close" onclick="toggleProfile()">×</button>
+  </div>
+  <div class="profile-body">
+    <div style="font-size:12px;color:var(--text-2);line-height:1.65">This context is injected into every AI call. Be specific — it makes the outputs more relevant.</div>
+    <div class="profile-section">Role & context</div>
+    <div><label class="flabel">Your role</label><select class="finput" id="p-role"><option selected>Commercialisation PM</option><option>Growth PM</option><option>Platform PM</option><option>Consumer PM</option><option>Other</option></select></div>
+    <div><label class="flabel">Product you own</label><input type="text" class="finput" id="p-product" value="Lead Center (TikTok C&S)"></div>
+    <div><label class="flabel">Primary market</label><input type="text" class="finput" id="p-market" value="Southeast Asia — Vietnam, Indonesia, Thailand"></div>
+    <div><label class="flabel">Core metric you optimise for</label><input type="text" class="finput" id="p-metric" value="Qualified lead conversion rate (CPQL)"></div>
+    <div><label class="flabel">Key stakeholders</label><input type="text" class="finput" id="p-stakeholders" value="PSO, Legal, Engineering, Sales"></div>
+    <div style="height:1px;background:var(--border);margin:4px 0"></div>
+    <div class="profile-section">Skills — how AI calibrates its outputs</div>
+    <div><label class="flabel">Decision-making framework</label><textarea class="finput" id="p-framework" rows="2">I use JTBD to frame problems and impact vs effort scoring to prioritise. When data is sparse I default to first-principles reasoning from user behaviour patterns.</textarea></div>
+    <div><label class="flabel">Communication style</label><textarea class="finput" id="p-comms" rows="2">I lead with the so-what, then support with evidence. Stakeholders prefer structured memos over long decks.</textarea></div>
+    <div><label class="flabel">What you care about most</label><textarea class="finput" id="p-values" rows="2">Post-launch adoption over launch-day numbers. Enterprise account retention. Can ops support this at scale?</textarea></div>
+    <div><label class="flabel">Domain expertise</label><textarea class="finput" id="p-expertise" rows="2">Deep knowledge of SEA advertising workflows and SMB advertiser behaviour in Vietnam and Indonesia.</textarea></div>
+    <div><label class="flabel">Blind spots to flag</label><textarea class="finput" id="p-blindspots" rows="2">Tend to over-index on enterprise, underweight SMB. Sometimes underestimate legal review timelines.</textarea></div>
+    <div style="display:flex;justify-content:flex-end"><button class="btn primary" onclick="saveProfile()">Save profile</button></div>
+  </div>
+</div>
+
+
+<!-- ADD INSIGHT MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add insight</div><button class="modal-close" onclick="closeModal('add-modal')">×</button></div>
+    <div class="modal-body">
+      <div><label class="flabel">Type</label><select class="finput" id="new-type"><option>Ticket</option><option>Request</option><option>Market trend</option><option>Feedback</option></select></div>
+      <div><label class="flabel">Description</label><textarea class="finput" id="new-text" rows="3" placeholder="Describe what you're hearing or seeing…"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div><label class="flabel">Source</label><input type="text" class="finput" id="new-source" placeholder="e.g. NPS survey, Sales call"></div>
+        <div><label class="flabel">Urgency</label><select class="finput" id="new-urgency"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('add-modal')">Cancel</button><button class="btn primary" onclick="saveInsight()">Add insight</button></div>
+  </div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div class="modal-overlay" id="schedule-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Edit schedule</div><button class="modal-close" onclick="closeModal('schedule-modal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div><label class="flabel">Frequency</label><select class="finput" id="sched-freq"><option>Daily</option><option selected>Weekly</option><option>Bi-weekly</option><option>Monthly</option></select></div>
+        <div><label class="flabel">Day</label><select class="finput" id="sched-day"><option selected>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div>
+      </div>
+      <div><label class="flabel">Time</label><input type="time" class="finput" value="09:00" id="sched-time"></div>
+      <div><label class="flabel">Notify via</label>
+        <div style="display:flex;gap:12px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer"><input type="checkbox" checked> Email</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer"><input type="checkbox"> Slack</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer"><input type="checkbox"> In-app</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('schedule-modal')">Cancel</button><button class="btn primary" onclick="closeModal('schedule-modal')">Save schedule</button></div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal" style="width:600px">
+    <div class="modal-header"><div class="modal-title">Export preview — Lark doc</div><button class="modal-close" onclick="closeModal('export-modal')">×</button></div>
+    <div class="modal-body" style="padding:1rem"><div class="export-doc" id="export-preview"></div></div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('export-modal')">Close</button><button class="btn primary" onclick="simulateExport()">↓ Export to Lark</button></div>
+  </div>
+</div>
+
+<div id="toast"><span style="color:#4a9d6f">✓</span> <span id="toast-msg"></span></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let selectedProblemId = null;
+let gtmGenerated = false;
+
+let profile = {
+  role:'Commercialisation PM', product:'Lead Center (TikTok C&S)',
+  market:'Southeast Asia — Vietnam, Indonesia, Thailand', metric:'Qualified lead conversion rate (CPQL)',
+  stakeholders:'PSO, Legal, Engineering, Sales',
+  framework:'I use JTBD to frame problems and impact vs effort scoring to prioritise.',
+  comms:'I lead with the so-what, then support with evidence.',
+  values:'Post-launch adoption. Enterprise retention. Can ops support this at scale?',
+  expertise:'Deep knowledge of SEA advertising workflows and SMB advertiser behaviour.',
+  blindspots:'Tend to over-index on enterprise, underweight SMB.',
+};
+
+// ─── INSIGHTS ───────────────────────────────────
+let insights = [
+  { id:1, type:'Ticket',       text:'Enterprise accounts cannot bulk-export leads from Lead Center. Manual one-by-one export takes 2–3 hours for 500+ records. Directly blocking QBR prep for 3 accounts this quarter.',                          source:'Support ticket',          urgency:'Critical' },
+  { id:2, type:'Feedback',     text:'"I have to export records one by one — this completely kills my workflow. I spend half a Friday doing what should take 5 minutes." — NPS detractor, enterprise segment, Vietnam.',                            source:'NPS survey',              urgency:'High' },
+  { id:3, type:'Market trend', text:'Kwai and Meta Leads Center both launched bulk export (CSV + Excel) in Q1 2025. Now being raised in competitive evaluations as a direct feature gap. Lost 1 deal to Kwai citing this in March.',                  source:'Market research',         urgency:'High' },
+  { id:4, type:'Feedback',     text:'Multiple advertisers in Vietnam reporting lead counts in Lead Center do not match what their TTAM is showing. Creating trust issues — manual reconciliation with account teams happening monthly.',               source:'Customer feedback (PSO)', urgency:'High' },
+  { id:5, type:'Ticket',       text:'Advertiser #VN-20341: Lead Center shows 847 leads for March campaign; TTAM report shows 791. Discrepancy of 56 leads unresolved for 2 weeks. Advertiser threatening to pause budget.',                          source:'Support ticket',          urgency:'Critical' },
+  { id:6, type:'Request',      text:'PSO requesting Lead Center to absorb Lead Qualification scoring currently in a separate internal tool. Sales reps context-switching between two products for one workflow. 200+ affected users in SEA.',        source:'Internal — PSO',          urgency:'Medium' },
+  { id:7, type:'Request',      text:'Legal team in Indonesia: data exports must include advertiser consent timestamp for PDPA compliance (effective June 2025). Confirmation needed on whether Lead Center export covers this field.',               source:'Internal — Legal',        urgency:'Medium' },
+  { id:8, type:'Feedback',     text:'A few users asked for dark mode in Lead Center. Mentioned in 2 NPS open-text comments this quarter. No support ticket volume to back this up.',                                                                source:'NPS survey',              urgency:'Low' },
+  { id:9, type:'Market trend', text:'HubSpot launched AI lead scoring in March 2025. Not directly competitive with current positioning, but worth monitoring as enterprise buyer expectations evolve.',                                               source:'Market research',         urgency:'Low' },
+];
+let nextInsightId = 10;
+
+// ─── PROBLEM CARDS DATA ─────────────────────────
+// type: 'Feature' | 'Bug fix' | 'UX improvement' | 'Compliance' | 'Data quality' | 'Process fix'
+// scoreDims: which 4 dimensions are relevant for this type (labels + keys)
+const PS_TYPES = {
+  'Feature':        { color:'#3050b0', bg:'#e8f0ff', border:'#c8d8ff', dims:['Customer impact','Revenue potential','Strategic fit','Insight volume'], keys:['customer','revenue','strategic','volume'] },
+  'Bug fix':        { color:'#9b1c1c', bg:'#fee2e2', border:'#fca5a5', dims:['User impact','Frequency','Severity','Time-to-fix'],                    keys:['customer','revenue','strategic','volume'] },
+  'UX improvement': { color:'#92580a', bg:'#fef3c0', border:'#fcd34d', dims:['User friction','Adoption impact','Strategic fit','Insight volume'],      keys:['customer','revenue','strategic','volume'] },
+  'Compliance':     { color:'#2d7a50', bg:'#f0faf4', border:'#b8e4c8', dims:['Legal risk','Deadline urgency','User impact','Scope'],                  keys:['customer','revenue','strategic','volume'] },
+  'Data quality':   { color:'#6b35a0', bg:'#f3eeff', border:'#d4b8ff', dims:['Trust impact','Frequency','Revenue risk','Fix complexity'],              keys:['customer','revenue','strategic','volume'] },
+  'Process fix':    { color:'#555', bg:'#f4f4f3', border:'#d0d0ce',    dims:['Ops efficiency','User count','Strategic fit','Insight volume'],          keys:['customer','revenue','strategic','volume'] },
+};
+
+const psData = [
+  {
+    id: 1, rank: '#1', title: 'Bulk data export is missing',
+    type: 'Feature',
+    scoreWeights: { customer: 9, revenue: 8, strategic: 8, volume: 7 },
+    statement: 'Enterprise and power users cannot export data in bulk, forcing manual one-at-a-time exports. This blocks enterprise sales deals, drives detractor NPS scores, and creates avoidable support load — all pointing to a critical capability gap.',
+    segments: ['Enterprise accounts', 'Power users (100+ records)'],
+    metrics: [
+      { name: 'Bulk export adoption among enterprise accounts', target: '≥ 60% in 90 days' },
+      { name: 'Support tickets related to export',              target: '↓ 40% in 60 days' },
+      { name: 'Enterprise deal conversion rate',                target: '↑ 15% in 1 quarter' },
+    ],
+    pmNote: 'High confidence — 3 independent signals across support, NPS, and sales. Kwai parity angle strengthens urgency.',
+  },
+  {
+    id: 2, rank: '#2', title: 'Data reconciliation trust gap',
+    type: 'Data quality',
+    scoreWeights: { customer: 7, revenue: 6, strategic: 7, volume: 6 },
+    statement: 'Lead counts in Lead Center routinely differ from TTAM reports, forcing monthly manual reconciliation. This is creating platform distrust and threatening budget pauses — the root cause needs investigation before committing to a fix.',
+    segments: ['All active advertisers', 'Compliance-sensitive enterprise accounts'],
+    metrics: [
+      { name: 'Data reconciliation support tickets', target: '↓ 30% in 90 days' },
+      { name: 'User-reported data trust score',      target: '↑ in quarterly survey' },
+      { name: 'Manual reconciliation hours',         target: '↓ 50% in 60 days' },
+    ],
+    pmNote: 'Watch whether this is a reporting bug or a pipeline sync issue before committing to a solution.',
+  },
+  {
+    id: 3, rank: '#3', title: 'Fragmented qualification workflow',
+    type: 'Process fix',
+    scoreWeights: { customer: 6, revenue: 5, strategic: 5, volume: 5 },
+    statement: 'Sales reps must context-switch between Lead Center and a separate internal qualification tool to complete one workflow, affecting 200+ SEA users. PSO is requesting consolidation, and the upcoming PDPA requirement adds a legal urgency layer to data handling.',
+    segments: ['Sales reps (SEA)', 'PSO team'],
+    metrics: [
+      { name: 'Qualification-to-contact time',   target: '↓ 25% in 1 quarter' },
+      { name: 'Tool context-switch rate',         target: '↓ to 0 after consolidation' },
+      { name: 'PDPA compliance coverage',         target: '100% by June 2025' },
+    ],
+    pmNote: 'Risk of over-indexing on enterprise — verify SMB volume before scoping. Legal deadline is non-negotiable.',
+  },
+];
+
+// ─── SCORE UTILS ─────────────────────────────────
+function calcScore(w) {
+  return Math.round((w.customer + w.revenue + w.strategic + w.volume) / 4 * 10);
+}
+const scoreStyle = {
+  Critical: { bg:'#fee2e2', color:'#9b1c1c' },
+  High:     { bg:'#fef3c0', color:'#92580a' },
+  Medium:   { bg:'#e8f0ff', color:'#3050b0' },
+  Low:      { bg:'var(--surface2)', color:'var(--text-2)' },
+};
+function scoreLabel(n) { return n>=80?'Critical':n>=65?'High':n>=45?'Medium':'Low'; }
+
+// ═══════════════════════════════════════════════
+// STEP NAV
+// ═══════════════════════════════════════════════
+const stepMeta = [
+  { num:'Step 1 of 2', title:'Inbound understanding', desc:'Capture insights, run scheduled analysis, and synthesise into ranked problem statements with target segments and success metrics.', inputs:['Customer feedback','Support tickets','Stakeholder requests','Market trends'], outputs:['Problem statements (ranked)','Target audience segment','Success metrics'] },
+  { num:'Step 2 of 2', title:'GTM', desc:'Translate your confirmed problem and solution into a narrative for PSO, sales, and operations.', inputs:['Confirmed problem statement','Competitive analysis','Solution context'], outputs:['One-line pitch','Background narrative','Feature & value summary','FAQ'] },
+];
+
+function setStep(i) {
+  document.querySelectorAll('.step-panel').forEach((p,idx) => p.classList.toggle('active', idx===i));
+  [0,1].forEach(idx => {
+    document.querySelector(`#sc-${idx}`).closest('.step-tab').classList.toggle('active', idx===i);
+    document.querySelector(`#sc-${idx}`).closest('.step-tab').classList.toggle('done', idx<i);
+    document.getElementById('sc-'+idx).textContent = idx<i ? '✓' : (idx+1);
+  });
+  const s = stepMeta[i];
+  document.getElementById('sb-num').textContent = s.num;
+  document.getElementById('sb-title').textContent = s.title;
+  document.getElementById('sb-desc').textContent = s.desc;
+  document.getElementById('sb-inputs').innerHTML = s.inputs.map(x=>`<div class="io-item in"><div class="io-dot"></div>${x}</div>`).join('');
+  document.getElementById('sb-outputs').innerHTML = s.outputs.map(x=>`<div class="io-item out"><div class="io-dot"></div>${x}</div>`).join('');
+  document.getElementById('prog-fill').style.width = (i+1)/2*100+'%';
+  document.getElementById('prog-label').textContent = (i+1)+' / 2';
+  if (i===1) populateGTMCarry();
+}
+
+// ═══════════════════════════════════════════════
+// INSIGHTS
+// ═══════════════════════════════════════════════
+const typeColors = {
+  'Ticket':       { bg:'#fff4e0', color:'#a06010' },
+  'Request':      { bg:'#e8f0ff', color:'#3050b0' },
+  'Market trend': { bg:'#f0faf4', color:'#2d7a50' },
+  'Feedback':     { bg:'#fdf0f0', color:'#a03030' },
+};
+
+function renderInsights() {
+  const filter = document.getElementById('filter-type').value;
+  const list = filter==='all' ? insights : insights.filter(s=>s.type===filter);
+  document.getElementById('m-ins').textContent = insights.length;
+  document.getElementById('m-src').textContent = new Set(insights.map(s=>s.source)).size;
+  const wrap = document.getElementById('ins-wrap');
+  if (!list.length) { wrap.innerHTML='<div style="padding:2rem;text-align:center;font-size:13px;color:var(--text-3)">No insights yet.</div>'; return; }
+  wrap.innerHTML = `<table class="ins-table">
+    <thead><tr><th style="width:110px">Type</th><th>Insight</th><th style="width:140px">Source</th><th style="width:80px">Urgency</th><th style="width:36px"></th></tr></thead>
+    <tbody>${list.map(s => {
+      const c = typeColors[s.type]||{bg:'#f4f4f3',color:'#4a4a47'};
+      const urgColor = {Critical:'#9b1c1c',High:'#a06010',Medium:'#6b6b68',Low:'#a8a8a5'}[s.urgency]||'#a8a8a5';
+      return `<tr>
+        <td><span style="background:${c.bg};color:${c.color};font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap">${s.type}</span></td>
+        <td style="max-width:300px;line-height:1.5">${s.text}</td>
+        <td style="color:var(--text-2);font-size:12px">${s.source}</td>
+        <td><span style="font-size:11px;color:${urgColor}">${s.urgency}</span></td>
+        <td><button class="del-btn" onclick="deleteInsight(${s.id})">×</button></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+function deleteInsight(id) { insights=insights.filter(s=>s.id!==id); renderInsights(); }
+function openModal(id) { document.getElementById(id).classList.add('open'); if(id==='add-modal') setTimeout(()=>document.getElementById('new-text').focus(),50); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function saveInsight() {
+  const text=document.getElementById('new-text').value.trim(); if(!text){document.getElementById('new-text').focus();return;}
+  insights.push({id:nextInsightId++,type:document.getElementById('new-type').value,text,source:document.getElementById('new-source').value||'—',urgency:document.getElementById('new-urgency').value});
+  closeModal('add-modal'); renderInsights();
+  document.getElementById('new-text').value=''; document.getElementById('new-source').value='';
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal(e.currentTarget.id);}));
+
+function runNow() {
+  const btn=document.getElementById('run-btn'); btn.textContent='⟳ Running…'; btn.disabled=true;
+  setTimeout(()=>{btn.textContent='✓ Done';setTimeout(()=>{btn.textContent='▶ Run now';btn.disabled=false;},1500);},2000);
+}
+
+// ═══════════════════════════════════════════════
+// STEP 1 TABS
+// ═══════════════════════════════════════════════
+const s1Tabs = ['insights','outputs','schedule','ask'];
+function s1Tab(id) {
+  s1Tabs.forEach((t,i) => {
+    document.getElementById('s1-'+t).classList.toggle('active', t===id);
+    document.querySelectorAll('#panel-0 .itabs .itab')[i].classList.toggle('active', t===id);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// PROBLEM CARDS
+// ═══════════════════════════════════════════════
+function renderPsCards() {
+  const wrap = document.getElementById('ps-cards');
+  wrap.innerHTML = psData.map(p => {
+    const score = calcScore(p.scoreWeights);
+    const lbl = scoreLabel(score);
+    const ss = scoreStyle[lbl];
+    const sel = selectedProblemId === p.id;
+    const ptype = PS_TYPES[p.type] || PS_TYPES['Feature'];
+    const noteHtml = p.pmNote ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-left:3px solid #f59e0b;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--amber);line-height:1.55;margin-top:6px"><strong>PM note:</strong> ${p.pmNote}</div>`:'';
+
+    const typeBadge = `<span style="font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:20px;background:${ptype.bg};color:${ptype.color};border:1px solid ${ptype.border};white-space:nowrap">${p.type}</span>`;
+
+    const typeOptions = Object.keys(PS_TYPES).map(t =>
+      `<option${t===p.type?' selected':''}>${t}</option>`).join('');
+
+    return `<div class="ps-card${sel?' selected':''}${selectedProblemId&&!sel?' dimmed':''}" id="psc-${p.id}">
+      <div class="ps-card-head">
+        <div class="ps-sel${sel?' on':''}" id="pssel-${p.id}" onclick="selectProblem(${p.id})"><div class="ps-sel-dot"></div></div>
+        <span class="ps-rank">${p.rank}</span>
+        <span class="ps-title">${p.title}</span>
+        ${typeBadge}
+        <div class="ps-score-pill" style="background:${ss.bg}">
+          <span class="ps-score-num" style="color:${ss.color}" id="psnum-${p.id}">${score}</span>
+          <span class="ps-score-lbl" style="color:${ss.color}" id="pslbl-${p.id}">${lbl}</span>
+        </div>
+        <button class="ws-btn" onclick="togglePsBody(${p.id})" id="pstog-${p.id}">Expand</button>
+      </div>
+      <div class="ps-body" id="psbody-${p.id}" style="display:none">
+
+        <!-- Problem statement -->
+        <div>
+          <div class="ps-stmt-label">Problem statement</div>
+          <div class="ps-stmt-wrap">
+            <textarea class="ps-stmt" id="psstmt-${p.id}" rows="3" oninput="psData.find(x=>x.id===${p.id}).statement=this.value">${p.statement}</textarea>
+            <span class="ps-edit-icon">✎</span>
+          </div>
+          ${noteHtml}
+        </div>
+
+        <!-- Two col: segments + priority score -->
+        <div class="ps-two-col">
+          <!-- SEGMENTS -->
+          <div>
+            <div class="ps-stmt-label">Target audience segment</div>
+            <div class="ps-segs-wrap" id="pssegs-${p.id}">
+              ${p.segments.map((s,si)=>`<div class="ps-seg">${s} <span class="ps-seg-x" onclick="removeSeg(${p.id},${si})">×</span></div>`).join('')}
+            </div>
+            <button class="add-seg-btn" onclick="addSeg(${p.id})">+ Add segment</button>
+          </div>
+
+          <!-- PRIORITY SCORE — labels adapt to type -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span class="ps-stmt-label" style="margin-bottom:0">Priority score</span>
+              <select class="ws-select" style="font-size:11px;height:24px;padding:0 6px" onchange="changeType(${p.id},this.value)">${typeOptions}</select>
+            </div>
+            <div class="score-rows" id="psscorerows-${p.id}">
+              ${ptype.dims.map((dimLabel, i) => {
+                const key = ptype.keys[i];
+                return `<div class="score-row">
+                  <span class="score-label">${dimLabel}</span>
+                  <div class="score-bar-wrap" id="psbar-${p.id}-${key}">
+                    <div class="score-bar-fill" style="width:${p.scoreWeights[key]*10}%"></div>
+                    <input type="range" min="1" max="10" value="${p.scoreWeights[key]}" class="score-slider" oninput="updateScore(${p.id},'${key}',this.value)">
+                  </div>
+                  <span class="score-val" id="pssv-${p.id}-${key}">${p.scoreWeights[key]}</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- SUCCESS METRICS -->
+        <div>
+          <div class="ps-stmt-label" style="margin-bottom:8px">Success metrics <span style="font-weight:400;color:var(--text-3)">— how do we know when this is resolved?</span></div>
+          <div class="ps-metrics-wrap" id="psmet-${p.id}">
+            ${p.metrics.map((m,mi)=>`
+            <div class="ps-metric-row" id="psmet-${p.id}-${mi}">
+              <input type="text" class="ps-metric-name" value="${m.name}" oninput="psData.find(x=>x.id===${p.id}).metrics[${mi}].name=this.value">
+              <input type="text" class="ps-metric-target" value="${m.target}" oninput="psData.find(x=>x.id===${p.id}).metrics[${mi}].target=this.value">
+              <button class="del-btn" onclick="removeMetric(${p.id},${mi})">×</button>
+            </div>`).join('')}
+          </div>
+          <button class="add-metric-btn" onclick="addMetric(${p.id})">+ Add metric</button>
+        </div>
+
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePsBody(id) {
+  const body = document.getElementById('psbody-'+id);
+  const btn = document.getElementById('pstog-'+id);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'flex';
+  body.style.flexDirection = 'column';
+  btn.textContent = open ? 'Expand' : 'Collapse';
+}
+
+function selectProblem(id) {
+  selectedProblemId = selectedProblemId===id ? null : id;
+  renderPsCards();
+  // auto-expand selected
+  if (selectedProblemId) {
+    const body = document.getElementById('psbody-'+id);
+    body.style.display = 'flex'; body.style.flexDirection = 'column';
+    document.getElementById('pstog-'+id).textContent = 'Collapse';
+  }
+  const p = psData.find(x=>x.id===id);
+  const cont = document.getElementById('s1-continue');
+  const hint = document.getElementById('s1-hint');
+  const banner = document.getElementById('sel-banner');
+  if (selectedProblemId && p) {
+    cont.disabled=false; cont.textContent='Continue to GTM →';
+    hint.innerHTML=`<span style="color:var(--green);font-weight:500">✓ Selected:</span> ${p.title}`;
+    banner.classList.add('show');
+    document.getElementById('sel-title').textContent=`"${p.title}" selected`;
+  } else {
+    cont.disabled=true; cont.textContent='Select a problem to continue →';
+    hint.textContent='Go to Outputs tab and select a problem to continue';
+    banner.classList.remove('show');
+  }
+}
+
+function updateScore(id, key, val) {
+  const p = psData.find(x=>x.id===id); if(!p) return;
+  p.scoreWeights[key] = parseInt(val);
+  const bar = document.querySelector(`#psbar-${id}-${key} .score-bar-fill`);
+  if(bar) bar.style.width = val*10+'%';
+  document.getElementById(`pssv-${id}-${key}`).textContent = val;
+  const score = calcScore(p.scoreWeights);
+  const lbl = scoreLabel(score);
+  const ss = scoreStyle[lbl];
+  const pill = document.getElementById('psc-'+id).querySelector('.ps-score-pill');
+  pill.style.background = ss.bg;
+  document.getElementById('psnum-'+id).style.color = ss.color;
+  document.getElementById('psnum-'+id).textContent = score;
+  document.getElementById('pslbl-'+id).style.color = ss.color;
+  document.getElementById('pslbl-'+id).textContent = lbl;
+}
+
+function removeSeg(id, si) {
+  const p = psData.find(x=>x.id===id); if(!p) return;
+  p.segments.splice(si,1);
+  const wrap = document.getElementById('pssegs-'+id);
+  wrap.innerHTML = p.segments.map((s,i)=>`<div class="ps-seg">${s} <span class="ps-seg-x" onclick="removeSeg(${id},${i})">×</span></div>`).join('');
+}
+function addSeg(id) {
+  const name = prompt('Segment name:'); if(!name||!name.trim()) return;
+  const p = psData.find(x=>x.id===id); if(!p) return;
+  p.segments.push(name.trim());
+  const wrap = document.getElementById('pssegs-'+id);
+  wrap.innerHTML = p.segments.map((s,i)=>`<div class="ps-seg">${s} <span class="ps-seg-x" onclick="removeSeg(${id},${i})">×</span></div>`).join('');
+}
+function removeMetric(id, mi) {
+  const p = psData.find(x=>x.id===id); if(!p) return;
+  p.metrics.splice(mi,1);
+  const wrap = document.getElementById('psmet-'+id);
+  wrap.innerHTML = p.metrics.map((m,i)=>`
+    <div class="ps-metric-row">
+      <input type="text" class="ps-metric-name" value="${m.name}" oninput="psData.find(x=>x.id===${id}).metrics[${i}].name=this.value">
+      <input type="text" class="ps-metric-target" value="${m.target}" oninput="psData.find(x=>x.id===${id}).metrics[${i}].target=this.value">
+      <button class="del-btn" onclick="removeMetric(${id},${i})">×</button>
+    </div>`).join('');
+}
+function addMetric(id) {
+  const p = psData.find(x=>x.id===id); if(!p) return;
+  p.metrics.push({name:'New metric',target:'Target'});
+  removeMetric._skip=true;
+  const wrap = document.getElementById('psmet-'+id);
+  wrap.innerHTML = p.metrics.map((m,i)=>`
+    <div class="ps-metric-row">
+      <input type="text" class="ps-metric-name" value="${m.name}" oninput="psData.find(x=>x.id===${id}).metrics[${i}].name=this.value">
+      <input type="text" class="ps-metric-target" value="${m.target}" oninput="psData.find(x=>x.id===${id}).metrics[${i}].target=this.value">
+      <button class="del-btn" onclick="removeMetric(${id},${i})">×</button>
+    </div>`).join('');
+  wrap.lastElementChild.querySelector('.ps-metric-name').focus();
+}
+
+// ═══════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════
+const chatAnswers = {
+  enterprise: ()=>`<strong>Top pain points from enterprise users:</strong><ul><li><strong>Bulk export missing</strong> — blocking QBR prep for 3+ accounts, one user spends half a Friday on a 5-minute job.</li><li><strong>Data reconciliation friction</strong> — lead counts differ from TTAM. Monthly manual reconciliation has become standard.</li><li><strong>Competitive feature gap</strong> — Kwai and Meta both launched bulk export in Q1. Raised in evaluations.</li></ul>Confidence: <strong>High</strong> — 5 independent signals.`,
+  urgent: ()=>`<strong>Highest urgency (Critical):</strong><ul><li><em>Enterprise cannot bulk-export leads</em> — blocking 3 live QBR deal cycles.</li><li><em>Lead count discrepancy #VN-20341</em> — unresolved 2 weeks, advertiser threatening to pause budget.</li></ul>Both have direct, near-term revenue implications.`,
+  feedback: ()=>{ const fb=insights.filter(s=>s.type==='Feedback'); return `<strong>Feedback insights (${fb.length}):</strong><ul>${fb.map(f=>`<li>${f.text} <span style="opacity:0.6;font-size:11px">— ${f.source} · ${f.urgency}</span></li>`).join('')}</ul>Note: dark mode request is low signal — 2 mentions, no tickets.`; },
+  market: ()=>{ const mt=insights.filter(s=>s.type==='Market trend'); return `<strong>Market trend signals (${mt.length}):</strong><ul>${mt.map(m=>`<li>${m.text}</li>`).join('')}</ul>Bulk export is becoming table-stakes in SEA. HubSpot AI scoring is a longer-term watch.`; },
+  default: ()=>`Based on your <strong>${insights.length} insights</strong> across ${new Set(insights.map(s=>s.source)).size} sources:<ul><li>Most urgent: <strong>bulk export</strong> — appears in support, NPS, and market signals.</li><li>Second priority: <strong>data reconciliation</strong> — two critical tickets, real trust impact.</li><li>Background noise: dark mode, HubSpot AI — low signal.</li></ul>Anything specific you'd like to dig into?`,
+};
+function getResp(q) {
+  const l=q.toLowerCase();
+  if(l.includes('enterprise')) return chatAnswers.enterprise();
+  if(l.includes('urgent')||l.includes('highest')) return chatAnswers.urgent();
+  if(l.includes('feedback')) return chatAnswers.feedback();
+  if(l.includes('market')) return chatAnswers.market();
+  return chatAnswers.default();
+}
+function addMsg(role, html) {
+  const msgs=document.getElementById('chat-msgs');
+  const d=document.createElement('div'); d.className='chat-msg '+role;
+  d.innerHTML=role==='user'
+    ?`<div class="chat-av usr">PM</div><div class="chat-bubble">${html}</div>`
+    :`<div class="chat-av ai">✦</div><div class="chat-bubble">${html}</div>`;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight;
+}
+function askQ(q) {
+  if(!q.trim()) return;
+  document.getElementById('chat-sugs').style.display='none';
+  addMsg('user',q);
+  const msgs=document.getElementById('chat-msgs');
+  const d=document.createElement('div'); d.className='chat-msg ai'; d.id='typing';
+  d.innerHTML=`<div class="chat-av ai">✦</div><div class="chat-bubble" style="padding:10px 13px"><div style="display:flex;gap:4px"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>`;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight;
+  setTimeout(()=>{ const t=document.getElementById('typing'); if(t)t.remove(); addMsg('ai',getResp(q)); },800+Math.random()*500);
+}
+function useSug(btn){ askQ(btn.textContent); }
+function sendChat(){ const inp=document.getElementById('chat-input'); const q=inp.value.trim(); if(!q)return; inp.value=''; askQ(q); }
+function handleChatKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
+
+// ═══════════════════════════════════════════════
+// CHANGE PROBLEM TYPE
+// ═══════════════════════════════════════════════
+function changeType(id, newType) {
+  const p = psData.find(x=>x.id===id); if(!p) return;
+  p.type = newType;
+  // Re-render just the score rows with new labels
+  const ptype = PS_TYPES[newType] || PS_TYPES['Feature'];
+  const rowsWrap = document.getElementById('psscorerows-'+id);
+  if (!rowsWrap) return;
+  rowsWrap.innerHTML = ptype.dims.map((dimLabel, i) => {
+    const key = ptype.keys[i];
+    return `<div class="score-row">
+      <span class="score-label">${dimLabel}</span>
+      <div class="score-bar-wrap" id="psbar-${id}-${key}">
+        <div class="score-bar-fill" style="width:${p.scoreWeights[key]*10}%"></div>
+        <input type="range" min="1" max="10" value="${p.scoreWeights[key]}" class="score-slider" oninput="updateScore(${id},'${key}',this.value)">
+      </div>
+      <span class="score-val" id="pssv-${id}-${key}">${p.scoreWeights[key]}</span>
+    </div>`;
+  }).join('');
+  // Update the type badge in the card head
+  renderPsCards();
+  // Re-expand the card
+  const body = document.getElementById('psbody-'+id);
+  if (body) { body.style.display='flex'; body.style.flexDirection='column'; }
+  const tog = document.getElementById('pstog-'+id);
+  if (tog) tog.textContent='Collapse';
+}
+
+// ═══════════════════════════════════════════════
+// LARK LINK READING (simulated)
+// ═══════════════════════════════════════════════
+let larkDocs = { prd: null, comp: null };
+
+const larkSims = {
+  prd: {
+    name: 'Lead Center · Bulk Export PRD v2.1',
+    preview: 'Solution: one-click bulk export (CSV + Excel) with optional filters. Evidence: 3 deals blocked Q1, NPS detractor rate 2× among manual-export users.',
+  },
+  comp: {
+    name: 'SEA Competitive Analysis — Lead Center Q1 2026',
+    preview: 'Kwai: native CSV export, no filters. Meta: CSV + Excel, date filter only. HubSpot: full filtered export, scheduled delivery. Our gap: no bulk export at all.',
+  },
+};
+
+function readLark(doc) {
+  const urlEl = document.getElementById(doc+'-url');
+  if (!urlEl || !urlEl.value.trim()) { urlEl && urlEl.focus(); return; }
+
+  document.getElementById(doc+'-idle').style.display = 'none';
+  const readingEl = document.getElementById(doc+'-reading');
+  readingEl.style.display = 'flex';
+
+  setTimeout(() => {
+    readingEl.style.display = 'none';
+    larkDocs[doc] = larkSims[doc];
+    document.getElementById(doc+'-doc-name').textContent = larkSims[doc].name;
+    document.getElementById(doc+'-doc-preview').textContent = larkSims[doc].preview;
+    document.getElementById(doc+'-done').style.display = 'flex';
+  }, 1600);
+}
+
+function removeLark(doc) {
+  larkDocs[doc] = null;
+  document.getElementById(doc+'-url').value = '';
+  document.getElementById(doc+'-done').style.display = 'none';
+  document.getElementById(doc+'-idle').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════
+// GTM
+// ═══════════════════════════════════════════════
+function gtmTab(id) {
+  ['input','output'].forEach((t,i) => {
+    document.getElementById('gtm-'+t).classList.toggle('active', t===id);
+    document.querySelectorAll('#gtm-tabs .itab')[i].classList.toggle('active', t===id);
+  });
+}
+
+function populateGTMCarry() {
+  const p = psData.find(x=>x.id===selectedProblemId) || psData[0];
+  document.getElementById('gtm-carry-stmt').textContent = p.statement;
+  document.getElementById('gtm-carry-segs').innerHTML = p.segments.map(s=>`<span class="carry-chip">${s}</span>`).join('');
+  document.getElementById('gtm-carry-metrics').innerHTML = p.metrics.map(m=>`<div style="padding:3px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px;font-size:12px"><span style="color:var(--green)">↗</span>${m.name}: ${m.target}</div>`).join('');
+}
+
+function generateGTM() {
+  document.getElementById('gtm-empty').style.display='none';
+  document.getElementById('gtm-out-body').style.display='none';
+  document.getElementById('gtm-loader').style.display='block';
+
+  setTimeout(()=>{
+    const p = psData.find(x=>x.id===selectedProblemId) || psData[0];
+    const hasPrd  = !!larkDocs.prd;
+    const hasComp = !!larkDocs.comp;
+    const ptype = p.type || 'Feature';
+
+    // ── Narrative adapts by problem type ──────────────────────
+    // Pitch
+    const pitchMap = {
+      'Feature':        'Bulk export: one click to get your records out, in the format your team actually uses.',
+      'Bug fix':        'Data reconciliation fix: Lead Center and TTAM will now show the same numbers — always.',
+      'UX improvement': 'Faster qualification: fewer clicks, less context-switching, more time on actual selling.',
+      'Compliance':     'PDPA-ready exports: consent timestamps included automatically, so your team ships compliant data from day one.',
+      'Data quality':   'One source of truth: lead counts that match across Lead Center, TTAM, and CRM — no more manual reconciliation.',
+      'Process fix':    'One tool for the full workflow: qualification and follow-up in Lead Center, without switching apps.',
+    };
+    document.getElementById('gtm-pitch').textContent = pitchMap[ptype] || pitchMap['Feature'];
+
+    // ── Background — why this matters ──────────────────────────
+    const bgPrdLine = hasPrd
+      ? `<p>The full solution scope and implementation details are documented in the PRD (<em>${larkDocs.prd.name}</em>), linked in the references section.</p>`
+      : '';
+    const bgCompLine = hasComp
+      ? `<p>According to the competitive analysis (<em>${larkDocs.comp.name}</em>): ${larkDocs.comp.preview}</p>`
+      : '';
+
+    const bgMap = {
+      'Feature': `
+        <p>Enterprise and power users on Lead Center have been unable to export records in bulk — forcing manual, one-by-one exports that can take 2–3 hours for a 500-record dataset.</p>
+        <p>With Kwai and Meta both launching bulk export in Q1 2025, this has become a competitive gap raised in enterprise evaluations. Three deals were blocked this quarter citing this issue directly.</p>
+        ${bgCompLine}${bgPrdLine}`,
+      'Data quality': `
+        <p>Lead counts in Lead Center have been inconsistent with TTAM reports, triggering monthly manual reconciliation between advertisers and account teams. In one case, a 56-lead discrepancy went unresolved for two weeks, putting an active budget at risk.</p>
+        <p>This isn't just a data problem — it's a trust problem. Advertisers who don't trust their numbers start second-guessing decisions, increasing churn risk in our highest-value accounts.</p>
+        ${bgPrdLine}`,
+      'Process fix': `
+        <p>Sales reps completing lead qualification currently have to switch between Lead Center and a separate internal tool — two apps, one workflow. With 200+ affected users in SEA, this is a significant compounding drag on daily efficiency.</p>
+        <p>PSO has requested consolidation, and the upcoming PDPA compliance deadline in Indonesia adds legal urgency to getting data handling right in a single place.</p>
+        ${bgPrdLine}`,
+    };
+    document.getElementById('gtm-bg').innerHTML = bgMap[ptype] || bgMap['Feature'];
+
+    // ── Differentiation (editable in output) ──────────────────
+    const diffMap = {
+      'Feature':    'Unlike competitors who require navigating multiple menus, our export is a single button in the records toolbar — zero configuration for the 90% use case, with power options (filtered export, format selection) available for those who need them.',
+      'Data quality':'Unlike the current state where reconciliation requires manual cross-referencing between two systems, the fix makes Lead Center the single source of truth — counts are computed from the same pipeline as TTAM, eliminating the discrepancy at source.',
+      'Process fix': 'Unlike the current two-tool workflow, qualification happens entirely within Lead Center — no context-switching, no copy-paste between systems, and a single audit trail for PDPA compliance.',
+    };
+    document.getElementById('gtm-diff').textContent = diffMap[ptype] || diffMap['Feature'];
+
+    // ── What is this ───────────────────────────────────────────
+    const whatMap = {
+      'Feature': `
+        <p>We've launched one-click bulk export that removes the manual bottleneck entirely.</p>
+        <ul>
+          <li><strong>One-click download</strong> — Export all records directly from the toolbar. No configuration needed for the common case.</li>
+          <li><strong>Filtered export</strong> — Apply date range, owner, or status filters before downloading to get exactly the right subset.</li>
+          <li><strong>Format choice</strong> — Download as CSV (default) or Excel (.xlsx), covering both data processing and finance team use cases.</li>
+          <li><strong>Scope confirmation</strong> — A pre-download summary shows record count and active filters so users can verify before triggering.</li>
+        </ul>
+        <p>The result: what used to take half a Friday now takes under 30 seconds.</p>`,
+      'Data quality': `
+        <p>We've fixed the root cause of the lead count discrepancy between Lead Center and TTAM.</p>
+        <ul>
+          <li><strong>Unified pipeline</strong> — Lead counts now computed from the same data source as TTAM, eliminating the sync lag that caused discrepancies.</li>
+          <li><strong>Real-time reconciliation view</strong> — New dashboard panel shows count parity status per campaign, flagging any remaining gaps immediately.</li>
+          <li><strong>Audit trail</strong> — Every count change is now logged with timestamp and source, so discrepancies can be traced and explained.</li>
+        </ul>
+        <p>The result: account teams spend zero time on manual reconciliation.</p>`,
+      'Process fix': `
+        <p>We've consolidated the qualification workflow into Lead Center, eliminating the need for a second tool.</p>
+        <ul>
+          <li><strong>Inline qualification scoring</strong> — Lead qualification scores now surface directly on each record in Lead Center.</li>
+          <li><strong>Single workflow view</strong> — Import, qualify, and schedule follow-up without leaving the platform.</li>
+          <li><strong>PDPA-compliant audit log</strong> — Consent timestamps included in all exports, meeting the June 2025 Indonesia requirement.</li>
+        </ul>
+        <p>The result: 200+ SEA sales reps get back the hours spent context-switching every week.</p>`,
+    };
+    document.getElementById('gtm-what').innerHTML = whatMap[ptype] || whatMap['Feature'];
+
+    // ── FAQ ────────────────────────────────────────────────────
+    const faqMap = {
+      'Feature': [
+        { q:'Who is this for?', a:'Primarily enterprise account managers and power users who manage 100+ records and regularly need to share data with external tools or teammates. It\'s also directly relevant to compliance teams who need PDPA-ready exports.' },
+        { q:'What formats are supported?', a:'CSV and Excel (.xlsx). CSV is the default. Excel is available for finance and legal teams who work directly in Microsoft Excel and need column types preserved.' },
+        { q:'Does it support filtered exports?', a:'Yes. Users can filter by date range, record owner, and status before downloading. The export confirmation screen shows the exact record count so users can verify scope before triggering.' },
+      ],
+      'Data quality': [
+        { q:'What was causing the discrepancy?', a:'Lead counts in the dashboard were computed from an intermediary cache that had a sync delay with the TTAM pipeline. The fix aligns both systems to the same upstream source, eliminating the lag.' },
+        { q:'Will existing discrepancies be resolved retroactively?', a:'The fix applies to all data going forward. A backfill for the past 90 days is in scope and will be completed within 2 weeks of the initial fix shipping.' },
+        { q:'How will advertisers know the issue is fixed?', a:'A status message will be shown in Lead Center confirming data parity, and account teams will receive a one-pager explaining the fix and what to tell affected advertisers.' },
+      ],
+      'Process fix': [
+        { q:'What happens to the existing qualification tool?', a:'It will be deprecated after a 30-day transition period. All historical qualification data will be migrated into Lead Center before the cutover.' },
+        { q:'Does this cover the PDPA requirement?', a:'Yes. All exports from the consolidated workflow include advertiser consent timestamps, meeting the June 2025 Indonesia PDPA compliance requirement.' },
+        { q:'Will sales reps need retraining?', a:'Minimal. The qualification UI in Lead Center uses the same scoring logic as the existing tool. A 15-minute onboarding session per team is planned before rollout.' },
+      ],
+    };
+    const faqs = faqMap[ptype] || faqMap['Feature'];
+    document.getElementById('gtm-faq').innerHTML = faqs.map(item=>`
+      <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:5px">${item.q}</div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.65">${item.a}</div>
+      </div>`).join('');
+
+    document.getElementById('gtm-loader').style.display='none';
+    document.getElementById('gtm-out-body').style.display='block';
+    gtmGenerated=true;
+    const expBtn = document.getElementById('gtm-export-btn');
+    expBtn.disabled=false; expBtn.style.opacity='1'; expBtn.style.cursor='pointer';
+    document.getElementById('gtm-hint').innerHTML=`<span style="color:var(--green);font-weight:500">✓ Narrative ready</span> — review, edit inline, then export to Lark`;
+  }, 1400);
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════
+function openExport() {
+  if(!gtmGenerated) return;
+  const pitch = document.getElementById('gtm-pitch').textContent;
+  const bg    = document.getElementById('gtm-bg').innerHTML;
+  const diff  = document.getElementById('gtm-diff').textContent;
+  const what  = document.getElementById('gtm-what').innerHTML;
+  const faqItems = [...document.querySelectorAll('#gtm-faq > div')];
+  const p = psData.find(x=>x.id===selectedProblemId)||psData[0];
+
+  const faqHtml = faqItems.map(div=>{
+    const q=div.querySelector('[style*="font-weight"]')?.textContent||'';
+    const a=div.querySelectorAll('div')[1]?.textContent||'';
+    return `<p style="font-weight:500;margin-bottom:4px">${q}</p><p style="color:#444;margin-bottom:12px">${a}</p>`;
+  }).join('');
+
+  const ptype = p.type || 'Feature';
+  document.getElementById('export-preview').innerHTML=`
+    <h1>Lead Center — GTM Brief</h1>
+    <p style="font-size:11px;color:#999;font-family:monospace;margin-bottom:4px">${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</p>
+    <p style="font-size:11px;color:#bbb;font-family:monospace;margin-bottom:8px">Type: ${ptype}</p>
+    <div class="divider"></div>
+    <h2>One-line pitch</h2>
+    <p style="font-size:15px;font-weight:500;color:#1c1b18">${pitch}</p>
+    <div class="divider"></div>
+    <h2>Problem we're resolving</h2>
+    <p>${p.statement}</p>
+    <div class="divider"></div>
+    <h2>Background</h2>
+    ${bg}
+    <div class="divider"></div>
+    <h2>What makes us different</h2>
+    <p>${diff}</p>
+    <div class="divider"></div>
+    <h2>What is this</h2>
+    ${what}
+    <div class="divider"></div>
+    <h2>FAQ</h2>
+    ${faqHtml}`;
+  openModal('export-modal');
+}
+function simulateExport() { closeModal('export-modal'); showToast('Exported to Lark doc successfully'); }
+
+// ═══════════════════════════════════════════════
+// PM PROFILE
+// ═══════════════════════════════════════════════
+function toggleProfile() { document.getElementById('profile-panel').classList.toggle('open'); }
+function saveProfile() {
+  ['role','product','market','metric','stakeholders','framework','comms','values','expertise','blindspots'].forEach(k=>{
+    const el=document.getElementById('p-'+k); if(el) profile[k]=el.value;
+  });
+  toggleProfile(); showToast('Profile saved — will apply to next AI generation');
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast'); document.getElementById('toast-msg').textContent=msg;
+  t.style.display='flex'; setTimeout(()=>t.style.display='none',3000);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+renderInsights();
+renderPsCards();
+setStep(0);
+</script>
+</body>
+</html>
