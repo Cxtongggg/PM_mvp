@@ -1,0 +1,3149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Product Workbench — PRD Generation</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff}
+    #root{height:100vh;overflow:hidden;display:flex;flex-direction:column}
+    select{appearance:auto}
+    button,textarea,select{font-family:inherit}
+    ::-webkit-scrollbar{width:6px}
+    ::-webkit-scrollbar-thumb{background:#e0e0e0;border-radius:6px}
+    .scrollable::-webkit-scrollbar{width:6px}
+    .scrollable::-webkit-scrollbar-thumb{background:#e0e0e0;border-radius:6px;border:2px solid #fff}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    .spinner{width:15px;height:15px;border:2px solid #e5e5e5;border-top-color:#111;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+    .skel{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+    .ta:focus{border-color:#111!important;background:#fff!important;box-shadow:0 0 0 3px rgba(0,0,0,.06)!important;outline:none}
+    .prd-ta:hover{border-color:#e5e5e5!important;background:#fafafa!important;padding:8px 10px!important}
+    .prd-ta:focus{border-color:#111!important;background:#fff!important;padding:8px 10px!important;box-shadow:0 0 0 3px rgba(0,0,0,.05)!important}
+    .topProbRow:hover{background:#fafafa!important}
+    textarea{resize:vertical}
+    #loading-screen{display:flex;align-items:center;justify-content:center;height:100vh;font-size:14px;color:#888;gap:10px}
+    .boot-spinner{width:18px;height:18px;border:2px solid #e5e5e5;border-top-color:#111;border-radius:50%;animation:spin .8s linear infinite}
+  </style>
+</head>
+<body>
+  <div id="root"><div id="loading-screen"><div class="boot-spinner"></div>Loading…</div></div>
+
+  <script>
+  // Load React dynamically so we control execution order
+  function loadScript(src, cb) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = cb;
+    s.onerror = function() { cb(new Error('Failed: ' + src)); };
+    document.head.appendChild(s);
+  }
+
+  var REACT_CDN   = 'https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js';
+  var REACTDOM_CDN = 'https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js';
+
+  loadScript(REACT_CDN, function(e1) {
+    if (e1 instanceof Error) {
+      document.getElementById('root').innerHTML = '<div style="padding:40px;color:#c00;font-family:monospace">Failed to load React CDN.<br>Check internet connection.</div>';
+      return;
+    }
+    loadScript(REACTDOM_CDN, function(e2) {
+      if (e2 instanceof Error) {
+        document.getElementById('root').innerHTML = '<div style="padding:40px;color:#c00;font-family:monospace">Failed to load ReactDOM CDN.</div>';
+        return;
+      }
+      startApp();
+    });
+  });
+
+  function startApp() {
+    try {
+function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
+function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
+function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+const _React = React,
+  useState = _React.useState,
+  useEffect = _React.useEffect;
+function Icon(_ref) {
+  let name = _ref.name,
+    _ref$size = _ref.size,
+    size = _ref$size === void 0 ? 16 : _ref$size,
+    _ref$strokeWidth = _ref.strokeWidth,
+    strokeWidth = _ref$strokeWidth === void 0 ? 2 : _ref$strokeWidth,
+    _ref$color = _ref.color,
+    color = _ref$color === void 0 ? "currentColor" : _ref$color,
+    style = _ref.style,
+    className = _ref.className;
+  const p = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: color,
+    strokeWidth: strokeWidth,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      display: "inline-block",
+      verticalAlign: "middle",
+      flexShrink: 0,
+      ...(style || {})
+    },
+    className
+  };
+  if (name === "ChevronRight") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
+    points: "9 18 15 12 9 6"
+  }));
+  if (name === "ArrowLeft") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("line", {
+    x1: "19",
+    y1: "12",
+    x2: "5",
+    y2: "12"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "12 19 5 12 12 5"
+  }));
+  if (name === "Check") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
+    points: "4 12 9 17 20 6"
+  }));
+  if (name === "AlertTriangle") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 22h16a2 2 0 0 0 1.73-4Z"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "9",
+    x2: "12",
+    y2: "13"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "17",
+    x2: "12.01",
+    y2: "17"
+  }));
+  if (name === "Sparkles") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
+  }));
+  if (name === "X") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("line", {
+    x1: "18",
+    y1: "6",
+    x2: "6",
+    y2: "18"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "6",
+    y1: "6",
+    x2: "18",
+    y2: "18"
+  }));
+  if (name === "Database") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("ellipse", {
+    cx: "12",
+    cy: "5",
+    rx: "9",
+    ry: "3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"
+  }));
+  if (name === "Quote") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"
+  }));
+  if (name === "PenLine") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M12 20h9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"
+  }));
+  if (name === "Lock") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("rect", {
+    width: "18",
+    height: "11",
+    x: "3",
+    y: "11",
+    rx: "2",
+    ry: "2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M7 11V7a5 5 0 0 1 10 0v4"
+  }));
+  if (name === "Globe") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "10"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "2",
+    y1: "12",
+    x2: "22",
+    y2: "12"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+  }));
+  if (name === "RotateCcw") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 3v5h5"
+  }));
+  if (name === "ListChecks") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M11 12H3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 6H3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 18H3"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "21 6 16 11 14 9"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "21 12 16 17 14 15"
+  }));
+  if (name === "FileStack") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M21 6v6.5c0 .8-.7 1.5-1.5 1.5h-7c-.8 0-1.5-.7-1.5-1.5v-9c0-.8.7-1.5 1.5-1.5H17l4 4z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M7 8v8.8c0 .3.2.6.4.8.2.2.5.4.8.4H15"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 12v8.8c0 .3.2.6.4.8.2.2.5.4.8.4H11"
+  }));
+  if (name === "Target") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "10"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "2"
+  }));
+  if (name === "CornerDownLeft") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
+    points: "9 10 4 15 9 20"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M20 4v7a4 4 0 0 1-4 4H4"
+  }));
+  if (name === "Plus") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "5",
+    x2: "12",
+    y2: "19"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "5",
+    y1: "12",
+    x2: "19",
+    y2: "12"
+  }));
+  if (name === "ChevronDown") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
+    points: "6 9 12 15 18 9"
+  }));
+  if (name === "GitCompare") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "18",
+    cy: "18",
+    r: "3"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "6",
+    cy: "6",
+    r: "3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M13 6h3a2 2 0 0 1 2 2v7"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M11 18H8a2 2 0 0 1-2-2V9"
+  }));
+  if (name === "Upload") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "17 8 12 3 7 8"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "3",
+    x2: "12",
+    y2: "15"
+  }));
+  if (name === "FileText") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M14 2v4a2 2 0 0 0 2 2h4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M10 9H8"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 13H8"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 17H8"
+  }));
+  if (name === "TrendingUp") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
+    points: "22 7 13.5 15.5 8.5 10.5 2 17"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "16 7 22 7 22 13"
+  }));
+  if (name === "Save") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "17 21 17 13 7 13 7 21"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "7 3 7 8 15 8"
+  }));
+  if (name === "Download") return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "7 10 12 15 17 10"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "15",
+    x2: "12",
+    y2: "3"
+  }));
+  return /*#__PURE__*/React.createElement("svg", p);
+}
+
+/* ─────────────── mock data ─────────────── */
+const VERTICALS = ["All verticals", "E-commerce", "Education", "Finance", "Local Services", "Entertainment"];
+const PRODUCT_LINES = ["All products", "Lead Ads", "App Promotion", "CPQL", "Search Ads", "Video Shopping"];
+const TOP_PROBLEMS = [{
+  id: "p1",
+  vertical: "E-commerce",
+  productLine: "Lead Ads",
+  rank: 1,
+  impact: "High",
+  requirementCount: 14,
+  title: "Sales relay chain distortion",
+  desc: "PM/PSO receive second-hand conclusions from sales with no traceability to original conversations.",
+  evidenceIds: ["e2"]
+}, {
+  id: "p2",
+  vertical: "E-commerce",
+  productLine: "CPQL",
+  rank: 2,
+  impact: "High",
+  requirementCount: 9,
+  title: "Request-level data latency → delayed decisions",
+  desc: "Pulling from multiple backends takes hours; decision windows close before analysis is done.",
+  evidenceIds: ["e1"]
+}, {
+  id: "p3",
+  vertical: "E-commerce",
+  productLine: "Search Ads",
+  rank: 3,
+  impact: "Medium",
+  requirementCount: 6,
+  title: "No self-serve insight access",
+  desc: "Internal teams rely on account managers to surface performance data instead of accessing it directly.",
+  evidenceIds: ["e3"]
+}, {
+  id: "p4",
+  vertical: "Education",
+  productLine: "Lead Ads",
+  rank: 1,
+  impact: "High",
+  title: "Data pipeline latency blocks timely decisions",
+  desc: "Weekly manual pulls from three backends delay decisions past the action window.",
+  evidenceIds: ["e1"]
+}, {
+  id: "p5",
+  vertical: "Education",
+  productLine: "App Promotion",
+  rank: 2,
+  impact: "Medium",
+  title: "Insight attribution unclear",
+  desc: "Synthesised problem statements lack original source grounding.",
+  evidenceIds: ["e2"]
+}, {
+  id: "p6",
+  vertical: "Finance",
+  productLine: "Lead Ads",
+  rank: 1,
+  impact: "High",
+  title: "Lead quality visibility gap",
+  desc: "Advertisers lack real-time access to lead quality metrics across campaigns.",
+  evidenceIds: []
+}, {
+  id: "p7",
+  vertical: "Finance",
+  productLine: "CPQL",
+  rank: 2,
+  impact: "Medium",
+  title: "CPL benchmark opacity",
+  desc: "No standardised way to compare CPL against industry benchmarks.",
+  evidenceIds: []
+}, {
+  id: "p8",
+  vertical: "Local Services",
+  productLine: "Lead Ads",
+  rank: 1,
+  impact: "High",
+  title: "Self-serve performance data gap",
+  desc: "Advertisers rely on account managers to pull performance data instead of accessing it directly.",
+  evidenceIds: ["e3"]
+}, {
+  id: "p9",
+  vertical: "Entertainment",
+  productLine: "Video Shopping",
+  rank: 1,
+  impact: "High",
+  title: "Split testing workflow fragmentation",
+  desc: "No unified experiment tracking page; teams manage campaigns across disconnected tools.",
+  evidenceIds: []
+}, {
+  id: "p10",
+  vertical: "Finance",
+  productLine: "App Promotion",
+  rank: 3,
+  impact: "Medium",
+  title: "Post-install event tracking gaps",
+  desc: "Advertisers cannot accurately attribute in-app conversions; optimisation signals are incomplete.",
+  evidenceIds: []
+}, {
+  id: "p11",
+  vertical: "E-commerce",
+  productLine: "Video Shopping",
+  rank: 4,
+  impact: "Medium",
+  title: "Video creative performance opaque",
+  desc: "No segment-level breakdown of video ad performance; creative iteration relies on guesswork.",
+  evidenceIds: []
+}, {
+  id: "p12",
+  vertical: "Local Services",
+  productLine: "Search Ads",
+  rank: 2,
+  impact: "Medium",
+  title: "Keyword relevance scoring inconsistency",
+  desc: "Local advertisers report inconsistent quality scores across campaigns for near-identical keywords.",
+  evidenceIds: []
+}];
+const ALL_EVIDENCE = {
+  e1: {
+    id: "e1",
+    source: "Client Info Hub · Education · 2024Q4",
+    confidence: 0.91,
+    snippet: "We manually pull from three backends each week just to build one table — by the time we're done the decision window is closed.",
+    cluster: "Data pipeline latency → delayed decisions"
+  },
+  e2: {
+    id: "e2",
+    source: "PSO Feedback · E-commerce",
+    confidence: 0.74,
+    snippet: "What we get from sales is already a second-hand conclusion — there's no way to trace it back to the original conversation.",
+    cluster: "Sales relay chain distortion"
+  },
+  e3: {
+    id: "e3",
+    source: "Client Info Hub · Local Services",
+    confidence: 0.52,
+    snippet: "We just want to see our own performance data, not rely on our account manager every time.",
+    cluster: "Self-serve data access"
+  }
+};
+const MOCK_DIRECTIONS = [{
+  id: "d1",
+  title: "Request-level direct connect + auto-join",
+  strength: "feedback",
+  desc: "Aggregate multi-backend data per request so PM/PSO get structured results without the sales relay.",
+  basis: "Supported by e1 + e2"
+}, {
+  id: "d2",
+  title: "Attributable evidence view",
+  strength: "feedback",
+  desc: "Attach original conversation snippets to every insight so second-hand distortion is traceable.",
+  basis: "Supported by e2"
+}, {
+  id: "d3",
+  title: "Self-serve dashboard embed",
+  strength: "model",
+  desc: "Embed a self-serve query panel into existing performance dashboards. Limited feedback signal — primarily model inference.",
+  basis: "Model inference only, e3 weak signal"
+}];
+const RECALLED_DOCS = [{
+  id: "r1",
+  name: "Lead Ads Product Spec v3.pdf",
+  type: "Product doc",
+  relevance: "high"
+}, {
+  id: "r2",
+  name: "PSO Feedback Synthesis — Q4.docx",
+  type: "Feedback synthesis",
+  relevance: "high"
+}, {
+  id: "r3",
+  name: "Client Info Hub API Reference.md",
+  type: "Technical doc",
+  relevance: "medium"
+}];
+const MOCK_QUESTIONS = [{
+  id: "q1",
+  rank: 1,
+  q: "Are the first users internal PMs or PSOs? Do they share the same data permission boundaries?",
+  why: "Determines permission model and the User / Scenario section — highest uncertainty."
+}, {
+  id: "q2",
+  rank: 2,
+  q: "What's the granularity of 'request-level' — a single advertiser request or per campaign?",
+  why: "Affects data architecture and downstream Meego field mapping."
+}, {
+  id: "q3",
+  rank: 3,
+  q: "Does MVP include attributable evidence, or just direct connect + auto-join first?",
+  why: "Defines Scope / Guardrails and sprint estimate."
+}];
+const PRD_TEMPLATE = [{
+  key: "goal",
+  label: "Goal",
+  desc: "What user / business problem are we solving",
+  filled: true,
+  body: "PM/PSO cannot get structured request-level data in time. They rely on a lossy sales relay chain, causing delayed decisions with no way to trace evidence. Goal: let authorised internal users get structured request-level insights in one place with source traceability."
+}, {
+  key: "user",
+  label: "User / Scenario",
+  desc: "Who uses it and in what context",
+  filled: true,
+  body: "Internal PM & PSO when analysing an advertiser / industry issue and needing primary evidence to support their conclusion. (First-wave user boundary: see Open Questions)"
+}, {
+  key: "scope",
+  label: "Scope",
+  desc: "What we're building this time",
+  filled: true,
+  body: "Request-level direct connect + auto-join across backends; each insight drills down to original conversation snippets."
+}, {
+  key: "guardrails",
+  label: "Guardrails",
+  desc: "What we're explicitly not doing",
+  filled: false,
+  body: "Not automated decision-making; not customer-facing; not a replacement for the sales relationship. Further boundaries TBD."
+}, {
+  key: "flow",
+  label: "User Flow",
+  desc: "Step-by-step user path",
+  filled: false,
+  body: "TBD: Entry → select request → view structured insights → drill down to source → export."
+}, {
+  key: "rules",
+  label: "Business Rules",
+  desc: "Rule 1, Rule 2, Rule 3",
+  filled: false,
+  body: "Rule 1: visible to authorised internal users only; Rule 2: every insight must carry grounding; Rule 3: TBD."
+}, {
+  key: "edge",
+  label: "Edge Cases",
+  desc: "Anomalies and boundary conditions",
+  filled: false,
+  body: "TBD: no matched feedback, snippet truncated by anonymisation, cross-industry data bleed."
+}, {
+  key: "ac",
+  label: "Acceptance Criteria",
+  desc: "Definition of done",
+  filled: false,
+  body: "TBD: results within target latency; 100% of insights traceable to source."
+}, {
+  key: "metrics",
+  label: "Metrics",
+  desc: "What to watch after launch",
+  filled: true,
+  body: "Using the 9 defined tracking events (session behaviour, insight feed, drill-down, problem statement gen, cross-nav). Monitor via volume / depth / stickiness / filter-usage framework."
+}, {
+  key: "oq",
+  label: "Open Questions",
+  desc: "Unresolved questions",
+  filled: true,
+  body: "⚠ First users PM or PSO? Granularity single-request vs campaign? MVP scope include attribution? (All carried from unanswered key questions)"
+}];
+const MAKE_DIFFS = () => [{
+  id: 1,
+  step: 1,
+  prdKey: "user",
+  section: "User / Scenario",
+  old: "Internal PM & PSO when needing primary evidence.",
+  nv: "First wave: PSO only. PM access in phase 2."
+}, {
+  id: 2,
+  step: 2,
+  prdKey: "scope",
+  section: "Scope",
+  old: "Request-level direct connect + auto-join for PM/PSO.",
+  nv: "Request-level direct connect + auto-join, first wave PSO only."
+}, {
+  id: 3,
+  step: 2,
+  prdKey: "guardrails",
+  section: "Guardrails",
+  old: "Not automated decision-making; not customer-facing. Further TBD.",
+  nv: "Not open to PM role this cycle; no self-serve permission requests; not automated decision-making; not customer-facing."
+}, {
+  id: 4,
+  step: 3,
+  prdKey: null,
+  section: "Clarify Q1",
+  old: "First users PM or PSO? (unanswered)",
+  nv: "Confirmed: PSO first. Question closed."
+}];
+const PRD_SUBSTEPS = [{
+  n: 1,
+  label: "Problem",
+  sub: "Workbench + own input",
+  checkpoint: false
+}, {
+  n: 2,
+  label: "Solution",
+  sub: "Checkpoint",
+  checkpoint: true
+}, {
+  n: 3,
+  label: "Clarify",
+  sub: "Checkpoint · ≤3",
+  checkpoint: true
+}, {
+  n: 4,
+  label: "Draft + Review",
+  sub: "Aligns to template",
+  checkpoint: false
+}];
+const OUTER_STEPS = [{
+  n: 1,
+  label: "Inbound",
+  desc: "Capture incoming insights, run scheduled analysis, and synthesise into problem statements."
+}, {
+  n: 2,
+  label: "PRD",
+  desc: "Turn a confirmed problem into a structured PRD, grounded in Workbench feedback evidence."
+}, {
+  n: 3,
+  label: "GTM",
+  desc: "Generate GTM narrative, one-line pitch, background, differentiation, and FAQ from the PRD."
+}];
+
+/* ─────────────── main component ─────────────── */
+function PRDFlow() {
+  const _useState = useState(2),
+    _useState2 = _slicedToArray(_useState, 2),
+    outer = _useState2[0],
+    setOuter = _useState2[1];
+  const _useState3 = useState(1),
+    _useState4 = _slicedToArray(_useState3, 2),
+    step = _useState4[0],
+    setStep = _useState4[1];
+  const _useState5 = useState(1),
+    _useState6 = _slicedToArray(_useState5, 2),
+    maxReached = _useState6[0],
+    setMaxReached = _useState6[1];
+
+  // step 1 — problem
+  const _useState7 = useState("All verticals"),
+    _useState8 = _slicedToArray(_useState7, 2),
+    selectedVertical = _useState8[0],
+    setSelectedVertical = _useState8[1];
+  const _useState9 = useState("All products"),
+    _useState0 = _slicedToArray(_useState9, 2),
+    selectedProductLine = _useState0[0],
+    setSelectedProductLine = _useState0[1];
+  const _useState1 = useState(null),
+    _useState10 = _slicedToArray(_useState1, 2),
+    selectedProblem = _useState10[0],
+    setSelectedProblem = _useState10[1];
+  const _useState11 = useState(""),
+    _useState12 = _slicedToArray(_useState11, 2),
+    problem = _useState12[0],
+    setProblem = _useState12[1];
+  const _useState13 = useState([]),
+    _useState14 = _slicedToArray(_useState13, 2),
+    attachedEvidence = _useState14[0],
+    setAttachedEvidence = _useState14[1]; // evidence ids
+  const _useState15 = useState(false),
+    _useState16 = _slicedToArray(_useState15, 2),
+    evidenceOpen = _useState16[0],
+    setEvidenceOpen = _useState16[1];
+  const _useState17 = useState([]),
+    _useState18 = _slicedToArray(_useState17, 2),
+    files = _useState18[0],
+    setFiles = _useState18[1];
+
+  // step 2 — direction
+  const _useState19 = useState(""),
+    _useState20 = _slicedToArray(_useState19, 2),
+    dirText = _useState20[0],
+    setDirText = _useState20[1];
+  const _useState21 = useState(false),
+    _useState22 = _slicedToArray(_useState21, 2),
+    showAiSuggestions = _useState22[0],
+    setShowAiSuggestions = _useState22[1];
+
+  // step 3 — clarify
+  const _useState23 = useState({}),
+    _useState24 = _slicedToArray(_useState23, 2),
+    answers = _useState24[0],
+    setAnswers = _useState24[1];
+
+  // step 4 — draft
+  const _useState25 = useState(false),
+    _useState26 = _slicedToArray(_useState25, 2),
+    prdReady = _useState26[0],
+    setPrdReady = _useState26[1];
+  const _useState27 = useState(PRD_TEMPLATE),
+    _useState28 = _slicedToArray(_useState27, 2),
+    prd = _useState28[0],
+    setPrd = _useState28[1];
+  const _useState29 = useState(null),
+    _useState30 = _slicedToArray(_useState29, 2),
+    expanded = _useState30[0],
+    setExpanded = _useState30[1];
+  const _useState31 = useState(""),
+    _useState32 = _slicedToArray(_useState31, 2),
+    reviewNote = _useState32[0],
+    setReviewNote = _useState32[1];
+  const _useState33 = useState(null),
+    _useState34 = _slicedToArray(_useState33, 2),
+    diffs = _useState34[0],
+    setDiffs = _useState34[1];
+  const dirtySteps = new Set((diffs || []).filter(d => d.status === "pending").map(d => d.step));
+  const go = n => {
+    setStep(n);
+    setMaxReached(m => Math.max(m, n));
+  };
+  const submitReview = () => setDiffs(MAKE_DIFFS().map(d => ({
+    ...d,
+    status: "pending"
+  })));
+  const decide = (id, status) => {
+    const d = (diffs || []).find(x => x.id === id);
+    setDiffs(ds => ds.map(x => x.id === id ? {
+      ...x,
+      status
+    } : x));
+    if (status === "accepted" && d && d.prdKey) setPrd(p => p.map(s => s.key === d.prdKey ? {
+      ...s,
+      body: d.nv,
+      filled: true
+    } : s));
+  };
+  const allResolved = diffs && diffs.every(d => d.status !== "pending");
+  const curOuter = OUTER_STEPS.find(s => s.n === outer);
+  const pickTopProblem = prob => {
+    setSelectedProblem(prob);
+    setProblem(prob.desc);
+    setAttachedEvidence(prob.evidenceIds);
+    setEvidenceOpen(false);
+  };
+  const addFile = () => setFiles(f => [...f, {
+    id: Date.now(),
+    name: ["Competitive analysis v2.pdf", "User interview notes.docx", "Architecture doc.md"][f.length % 3]
+  }]);
+  return /*#__PURE__*/React.createElement("div", {
+    style: s.root
+  }, /*#__PURE__*/React.createElement("style", null, GLOBAL_CSS), /*#__PURE__*/React.createElement("div", {
+    style: s.topbar
+  }, /*#__PURE__*/React.createElement("span", {
+    style: s.brand
+  }, "Product Workbench"), /*#__PURE__*/React.createElement("button", {
+    style: s.langBtn
+  }, "English")), /*#__PURE__*/React.createElement("div", {
+    style: s.stepnav
+  }, OUTER_STEPS.map((os, i) => {
+    const done = os.n < outer,
+      active = os.n === outer;
+    return /*#__PURE__*/React.createElement(React.Fragment, {
+      key: os.n
+    }, /*#__PURE__*/React.createElement("button", {
+      style: s.stepItem,
+      onClick: () => setOuter(os.n)
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...s.stepCircle,
+        background: done || active ? "#111" : "#fff",
+        color: done || active ? "#fff" : "#999",
+        border: done || active ? "2px solid #111" : "2px solid #ccc"
+      }
+    }, done ? /*#__PURE__*/React.createElement(Icon, {
+      name: "Check",
+      size: 12,
+      strokeWidth: 3
+    }) : os.n), /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...s.stepLabel,
+        fontWeight: active ? 600 : 400,
+        color: active ? "#111" : "#888"
+      }
+    }, os.label), active && /*#__PURE__*/React.createElement("span", {
+      style: s.stepUnderline
+    })), i < OUTER_STEPS.length - 1 && /*#__PURE__*/React.createElement("span", {
+      style: s.stepSep
+    }, "\u203A"));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: s.body
+  }, /*#__PURE__*/React.createElement("aside", {
+    style: s.sidebar
+  }, /*#__PURE__*/React.createElement("div", {
+    style: s.sideTop
+  }, /*#__PURE__*/React.createElement("div", {
+    style: s.sideLabel
+  }, "CURRENT STEP"), /*#__PURE__*/React.createElement("div", {
+    style: s.sideMeta
+  }, "Step ", outer, " of 3"), /*#__PURE__*/React.createElement("div", {
+    style: s.sideName
+  }, curOuter.label, outer === 2 ? " · PRD Generation" : ""), /*#__PURE__*/React.createElement("div", {
+    style: s.sideDesc
+  }, curOuter.desc)), outer === 2 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: s.sideSection
+  }, "PRD STEPS"), /*#__PURE__*/React.createElement("div", {
+    style: s.subStepList
+  }, PRD_SUBSTEPS.map(ss => {
+    const active = ss.n === step,
+      done = ss.n < maxReached,
+      dirty = dirtySteps.has(ss.n);
+    return /*#__PURE__*/React.createElement("button", {
+      key: ss.n,
+      style: {
+        ...s.subStepItem,
+        background: active ? "#111" : "transparent",
+        color: active ? "#fff" : "#444"
+      },
+      onClick: () => go(ss.n)
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...s.subNum,
+        background: active ? "rgba(255,255,255,0.15)" : done ? "#111" : "#eee",
+        color: active ? "#fff" : done ? "#fff" : "#666"
+      }
+    }, done && !active ? /*#__PURE__*/React.createElement(Icon, {
+      name: "Check",
+      size: 10,
+      strokeWidth: 3
+    }) : ss.n), /*#__PURE__*/React.createElement("span", {
+      style: s.subText
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 500
+      }
+    }, ss.label, ss.checkpoint && /*#__PURE__*/React.createElement("span", {
+      style: s.cpDot
+    }), dirty && /*#__PURE__*/React.createElement("span", {
+      style: s.dirtyTag
+    }, "recompute")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        opacity: .65,
+        marginTop: 1
+      }
+    }, ss.sub)));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: s.sideSection
+  }, "OUTPUTS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, ["PRD draft (10 sections)", "Meego-ready fields", "Matched evidence"].map(o => /*#__PURE__*/React.createElement("div", {
+    key: o,
+    style: s.outputItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: s.greenDot
+  }), o)))), outer === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: s.sideSection
+  }, "INPUTS"), ["Customer feedback", "Support tickets", "Stakeholder requests", "Market trends"].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: s.inputItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: s.grayBullet
+  }), i)), /*#__PURE__*/React.createElement("div", {
+    style: s.sideSection
+  }, "OUTPUTS"), ["Problem statements (ranked)", "Target audience segment", "Success metrics"].map(o => /*#__PURE__*/React.createElement("div", {
+    key: o,
+    style: s.outputItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: s.greenDot
+  }), o))), outer === 3 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: s.sideSection
+  }, "INPUTS"), ["Confirmed PRD", "Problem statement", "Target segment"].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: s.inputItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: s.grayBullet
+  }), i)), /*#__PURE__*/React.createElement("div", {
+    style: s.sideSection
+  }, "OUTPUTS"), ["One-line pitch", "GTM background", "Differentiation", "FAQ"].map(o => /*#__PURE__*/React.createElement("div", {
+    key: o,
+    style: s.outputItem
+  }, /*#__PURE__*/React.createElement("span", {
+    style: s.greenDot
+  }), o))), /*#__PURE__*/React.createElement("div", {
+    style: s.sideProgress
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#555",
+      fontSize: 12
+    }
+  }, "Progress"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#111",
+      fontWeight: 500
+    }
+  }, outer === 2 ? `${step}/4` : "1/1"))), /*#__PURE__*/React.createElement("main", {
+    style: s.main
+  }, outer !== 2 ? /*#__PURE__*/React.createElement(Placeholder, {
+    step: outer,
+    label: curOuter.label,
+    onGo: () => setOuter(2)
+  }) : /*#__PURE__*/React.createElement(React.Fragment, null, step === 1 && /*#__PURE__*/React.createElement(S1, {
+    selectedVertical,
+    setSelectedVertical,
+    selectedProductLine,
+    setSelectedProductLine,
+    selectedProblem,
+    pickTopProblem,
+    setOuter,
+    problem,
+    setProblem,
+    attachedEvidence,
+    setAttachedEvidence,
+    evidenceOpen,
+    setEvidenceOpen,
+    files,
+    addFile,
+    setFiles,
+    onNext: () => go(2)
+  }), step === 2 && /*#__PURE__*/React.createElement(S2, {
+    dirText,
+    setDirText,
+    showAiSuggestions,
+    setShowAiSuggestions,
+    addFile,
+    onBack: () => go(1),
+    onNext: () => go(3)
+  }), step === 3 && /*#__PURE__*/React.createElement(S3, {
+    dirText,
+    onBack: () => go(2),
+    onNext: () => go(4)
+  }), step === 4 && /*#__PURE__*/React.createElement(S4, {
+    prd,
+    setPrd,
+    reviewNote,
+    setReviewNote,
+    diffs,
+    submitReview,
+    decide,
+    allResolved,
+    setDiffs,
+    onBack: () => go(3),
+    onNext: () => go(1)
+  })))));
+}
+
+/* ─── placeholder ─── */
+function Placeholder(_ref2) {
+  let step = _ref2.step,
+    label = _ref2.label,
+    onGo = _ref2.onGo;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "40px 48px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: s.kicker
+  }, label.toUpperCase()), /*#__PURE__*/React.createElement("h1", {
+    style: s.h1
+  }, step === 1 ? "What insights are you capturing?" : "Ready to generate GTM narrative?"), /*#__PURE__*/React.createElement("p", {
+    style: s.hint
+  }, step === 1 ? "Capture customer feedback, support tickets, stakeholder requests, and market trends." : "Generate one-line pitch, background, differentiation and FAQ from your confirmed PRD."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 32,
+      padding: 48,
+      border: "1px dashed #ddd",
+      borderRadius: 10,
+      textAlign: "center",
+      color: "#666",
+      fontSize: 14
+    }
+  }, step === 1 ? "Inbound module — coming soon" : "GTM module — coming soon", step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnPrimary,
+      marginTop: 20
+    },
+    onClick: onGo
+  }, "Go to PRD \u2192"))));
+}
+
+/* ─── Step 1: Problem ─── */
+function S1(_ref3) {
+  let selectedVertical = _ref3.selectedVertical,
+    setSelectedVertical = _ref3.setSelectedVertical,
+    selectedProductLine = _ref3.selectedProductLine,
+    setSelectedProductLine = _ref3.setSelectedProductLine,
+    selectedProblem = _ref3.selectedProblem,
+    pickTopProblem = _ref3.pickTopProblem,
+    setOuter = _ref3.setOuter,
+    problem = _ref3.problem,
+    setProblem = _ref3.setProblem,
+    attachedEvidence = _ref3.attachedEvidence,
+    setAttachedEvidence = _ref3.setAttachedEvidence,
+    evidenceOpen = _ref3.evidenceOpen,
+    setEvidenceOpen = _ref3.setEvidenceOpen,
+    files = _ref3.files,
+    addFile = _ref3.addFile,
+    setFiles = _ref3.setFiles,
+    onNext = _ref3.onNext;
+  const topProblems = TOP_PROBLEMS.filter(p => {
+    const vMatch = selectedVertical === "All verticals" || p.vertical === selectedVertical;
+    const pMatch = selectedProductLine === "All products" || p.productLine === selectedProductLine;
+    return vMatch && pMatch;
+  });
+  const evCount = attachedEvidence.length;
+  return /*#__PURE__*/React.createElement(Screen, {
+    kicker: "PRD GENERATION \u2014 STEP 1 OF 4",
+    title: "Start with the problem",
+    hint: "A good PRD starts from a clearly defined problem. Use natural language \u2014 the more context you provide, the better.",
+    onBack: null,
+    onNext: onNext,
+    nextLabel: "Define solution"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: s.sectionBlock
+  }, /*#__PURE__*/React.createElement("div", {
+    style: s.sectionBlockHead
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Database",
+    size: 13,
+    color: "#6b7280"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Top problems from advertiser feedback"), /*#__PURE__*/React.createElement("select", {
+    style: s.filterSelect,
+    value: selectedVertical,
+    onChange: e => setSelectedVertical(e.target.value)
+  }, VERTICALS.map(v => /*#__PURE__*/React.createElement("option", {
+    key: v
+  }, v))), /*#__PURE__*/React.createElement("select", {
+    style: s.filterSelect,
+    value: selectedProductLine,
+    onChange: e => setSelectedProductLine(e.target.value)
+  }, PRODUCT_LINES.map(pl => /*#__PURE__*/React.createElement("option", {
+    key: pl
+  }, pl)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 260,
+      overflowY: "auto"
+    },
+    className: "scrollable"
+  }, topProblems.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 16px",
+      textAlign: "center",
+      color: "#888",
+      fontSize: 13
+    }
+  }, "No problems match this filter combination.") : topProblems.map((p, idx) => {
+    const isSel = (selectedProblem === null || selectedProblem === void 0 ? void 0 : selectedProblem.id) === p.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: p.id,
+      style: {
+        ...s.topProbRow,
+        borderBottom: idx < topProblems.length - 1 ? "1px solid #f0f0f0" : "none",
+        ...(isSel ? s.topProbRowSel : {})
+      },
+      onClick: () => pickTopProblem(p)
+    }, /*#__PURE__*/React.createElement("span", {
+      style: s.rankNum
+    }, "#", p.rank), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        textAlign: "left"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        fontSize: 13,
+        display: "block",
+        color: isSel ? "#111" : "#222"
+      }
+    }, p.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13.5,
+        color: "#444",
+        lineHeight: 1.5,
+        display: "block",
+        marginTop: 3
+      }
+    }, p.desc), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        marginTop: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        fontFamily: "monospace",
+        color: "#888",
+        background: "#f5f5f5",
+        padding: "1px 6px",
+        borderRadius: 4
+      }
+    }, p.vertical), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        fontFamily: "monospace",
+        color: "#888",
+        background: "#f5f5f5",
+        padding: "1px 6px",
+        borderRadius: 4
+      }
+    }, p.productLine))), /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...s.impactTag,
+        flexShrink: 0,
+        background: p.impact === "High" ? "#d1fae5" : "#fef3c7",
+        color: p.impact === "High" ? "#065f46" : "#92400e"
+      }
+    }, p.impact, " impact"), isSel && /*#__PURE__*/React.createElement("span", {
+      style: {
+        flexShrink: 0,
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        background: "#111",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: 6
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "Check",
+      size: 11,
+      color: "#fff",
+      strokeWidth: 3
+    })));
+  }))), selectedProblem && /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: "10px 0 0",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    style: s.evidenceBadge,
+    onClick: () => setOuter(1)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Database",
+    size: 11
+  }), selectedProblem.requirementCount || 1, " requirements linked from Workbench", /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 11
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#666"
+    }
+  }, "click to view in Inbound")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      margin: "16px 0 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 1,
+      background: "#eee"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#444",
+      whiteSpace: "nowrap"
+    }
+  }, "or describe your own below"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 1,
+      background: "#eee"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      color: "#888"
+    }
+  }, "PROBLEM DESCRIPTION"), selectedProblem && /*#__PURE__*/React.createElement("button", {
+    style: s.clearSel,
+    onClick: () => {
+      setAttachedEvidence([]);
+      setProblem("");
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "X",
+    size: 10
+  }), "Clear selection")), /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...s.ta,
+      minHeight: 130
+    },
+    className: "ta",
+    value: problem,
+    onChange: e => setProblem(e.target.value),
+    placeholder: "Describe who is affected, what the impact is, and why it matters now. The more context, the better\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      border: "1px solid #e5e5e5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      background: "#fafafa",
+      borderBottom: "1px solid #eee",
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Upload",
+    size: 13,
+    color: "#6b7280"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      color: "#333"
+    }
+  }, "ATTACH CONTEXT"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#666",
+      marginLeft: 4
+    }
+  }, "\u2014 upload a doc as context if it helps")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 14px",
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, files.length === 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#555"
+    }
+  }, "No documents attached yet."), files.map(f => /*#__PURE__*/React.createElement("span", {
+    key: f.id,
+    style: s.fileChip
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "FileText",
+    size: 11
+  }), f.name, /*#__PURE__*/React.createElement(Icon, {
+    name: "X",
+    size: 11,
+    style: {
+      cursor: "pointer",
+      opacity: .6
+    },
+    onClick: () => setFiles(p => p.filter(x => x.id !== f.id))
+  }))), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnGhost,
+      fontSize: 12,
+      padding: "6px 13px",
+      marginLeft: "auto"
+    },
+    onClick: addFile
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Upload",
+    size: 12
+  }), "Upload document"))));
+}
+
+/* ─── Step 2: Solution ─── */
+function S2(_ref4) {
+  let dirText = _ref4.dirText,
+    setDirText = _ref4.setDirText,
+    showAiSuggestions = _ref4.showAiSuggestions,
+    setShowAiSuggestions = _ref4.setShowAiSuggestions,
+    addFile = _ref4.addFile,
+    onBack = _ref4.onBack,
+    onNext = _ref4.onNext;
+  return /*#__PURE__*/React.createElement(Screen, {
+    kicker: "PRD GENERATION \u2014 STEP 2 OF 4 \xB7 CHECKPOINT",
+    title: "Define your solution",
+    hint: null,
+    onBack: onBack,
+    onNext: onNext,
+    nextLabel: "Clarify & confirm",
+    checkpoint: true
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 14,
+      color: "#222",
+      lineHeight: 1.7,
+      margin: 0
+    }
+  }, "Describe the solution idea you have in mind. If you already have a clear approach, write it directly. If you're still exploring, AI can propose solutions based on Workbench's knowledge base and the context documents you uploaded.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      color: "#333",
+      marginBottom: 8
+    }
+  }, "YOUR SOLUTION"), /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...s.ta,
+      minHeight: 130
+    },
+    className: "ta",
+    value: dirText,
+    onChange: e => setDirText(e.target.value),
+    placeholder: "Describe your solution idea \u2014 e.g. build a request-level data layer that auto-joins backends so PM/PSO get structured insights directly, bypassing the sales relay chain\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTop: "1px solid #f0f0f0"
+    }
+  }, !showAiSuggestions ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 500,
+      color: "#333",
+      marginBottom: 4
+    }
+  }, "Not sure yet? Explore AI-proposed solutions"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#555",
+      lineHeight: 1.55
+    }
+  }, "AI will generate solution options based on Workbench's product knowledge base and any context documents you uploaded. Each option is labelled with its evidence basis so you know what you're relying on.")), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnGhost,
+      whiteSpace: "nowrap",
+      flexShrink: 0
+    },
+    onClick: () => setShowAiSuggestions(true)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 13
+  }), "Propose solutions")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      color: "#333",
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 11
+  }), "AI-PROPOSED SOLUTIONS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    style: s.textActionBtn,
+    onClick: () => setShowAiSuggestions(false)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "X",
+    size: 11
+  }), "Collapse"), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.textActionBtn,
+      borderLeft: "1px solid #eee",
+      paddingLeft: 10
+    },
+    onClick: () => {
+      setShowAiSuggestions(false);
+      setTimeout(() => setShowAiSuggestions(true), 60);
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "RotateCcw",
+    size: 11
+  }), "Regenerate"))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#555",
+      margin: "0 0 12px",
+      lineHeight: 1.55
+    }
+  }, "Generated from Workbench's knowledge base and uploaded context. Click a card to use as a starting point \u2014 then edit freely."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, MOCK_DIRECTIONS.map(d => /*#__PURE__*/React.createElement("button", {
+    key: d.id,
+    style: {
+      ...s.card,
+      textAlign: "left",
+      cursor: "pointer",
+      width: "100%",
+      ...(dirText === d.desc ? s.cardSel : {})
+    },
+    onClick: () => setDirText(d.desc)
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 7
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      flex: 1,
+      textAlign: "left"
+    }
+  }, d.title), /*#__PURE__*/React.createElement(StrengthTag, {
+    type: d.strength
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "#333",
+      lineHeight: 1.55
+    }
+  }, d.desc), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 7,
+      fontSize: 10.5,
+      color: "#555",
+      fontFamily: "monospace",
+      display: "flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Database",
+    size: 9
+  }), d.basis)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      border: "1px solid #e5e5e5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "9px 14px",
+      background: "#fafafa",
+      borderBottom: "1px solid #eee",
+      fontSize: 10.5,
+      fontWeight: 600,
+      letterSpacing: "0.05em",
+      color: "#555",
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "FileText",
+    size: 11
+  }), "CONTEXT RECALLED FOR THESE SUGGESTIONS", /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 10,
+      color: "#666",
+      fontWeight: 400,
+      fontFamily: "monospace"
+    }
+  }, RECALLED_DOCS.length, " documents")), RECALLED_DOCS.map(doc => /*#__PURE__*/React.createElement("div", {
+    key: doc.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 14px",
+      borderBottom: "1px solid #f5f5f5",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "FileText",
+    size: 12,
+    color: "#bbb",
+    style: {
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: "#333"
+    }
+  }, doc.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontFamily: "monospace",
+      background: doc.relevance === "high" ? "#eff6ff" : "#f9fafb",
+      color: doc.relevance === "high" ? "#1d4ed8" : "#6b7280",
+      padding: "2px 7px",
+      borderRadius: 5
+    }
+  }, doc.type), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontFamily: "monospace",
+      color: doc.relevance === "high" ? "#16a34a" : "#aaa"
+    }
+  }, doc.relevance === "high" ? "● high rel." : "○ medium rel."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "9px 14px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#555"
+    }
+  }, "Missing context? Upload more docs to improve suggestions."), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnGhost,
+      fontSize: 11.5,
+      padding: "5px 11px"
+    },
+    onClick: addFile
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Upload",
+    size: 11
+  }), "Upload to knowledge base"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "flex-start",
+      fontSize: 12,
+      color: "#b45309",
+      background: "#fffbeb",
+      border: "1px solid #fde68a",
+      borderRadius: 8,
+      padding: "8px 12px",
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 13,
+    style: {
+      flexShrink: 0,
+      marginTop: 1
+    }
+  }), /*#__PURE__*/React.createElement("span", null, "LLM has limited product context at this stage. The \u26A0 \"model inference\" label means the suggestion isn't grounded in real feedback \u2014 treat it as a hypothesis to validate.")))));
+}
+const DYNAMIC_QS = [{
+  id: "dq1",
+  q: "You mentioned bypassing the sales relay chain — is the sales team aware of this direction? Will they need to cooperate, or can this be built independently of them?"
+}, {
+  id: "dq2",
+  q: "When you say 'internal PM and PSO' as users — do they have the same data access permissions today? And roughly how many people are you thinking for the first wave?"
+}, {
+  id: "dq3",
+  q: "What does success look like 30 days after launch — a specific behaviour change, a metric threshold, or something else?"
+}];
+
+/* ─── Step 3: Clarify ─── */
+function S3(_ref5) {
+  let dirText = _ref5.dirText,
+    onBack = _ref5.onBack,
+    onNext = _ref5.onNext;
+  const _useState35 = useState("loading"),
+    _useState36 = _slicedToArray(_useState35, 2),
+    phase = _useState36[0],
+    setPhase = _useState36[1];
+  const _useState37 = useState(0),
+    _useState38 = _slicedToArray(_useState37, 2),
+    qIdx = _useState38[0],
+    setQIdx = _useState38[1];
+  const _useState39 = useState([]),
+    _useState40 = _slicedToArray(_useState39, 2),
+    answered = _useState40[0],
+    setAnswered = _useState40[1];
+  const _useState41 = useState(""),
+    _useState42 = _slicedToArray(_useState41, 2),
+    draft = _useState42[0],
+    setDraft = _useState42[1];
+  const _useState43 = useState(false),
+    _useState44 = _slicedToArray(_useState43, 2),
+    transitioning = _useState44[0],
+    setTransitioning = _useState44[1];
+  const _useState45 = useState(null),
+    _useState46 = _slicedToArray(_useState45, 2),
+    currentQ = _useState46[0],
+    setCurrentQ = _useState46[1]; // {q, adaptNote}
+  const _useState47 = useState(null),
+    _useState48 = _slicedToArray(_useState47, 2),
+    editingIdx = _useState48[0],
+    setEditingIdx = _useState48[1];
+  const _useState49 = useState(""),
+    _useState50 = _slicedToArray(_useState49, 2),
+    editDraft = _useState50[0],
+    setEditDraft = _useState50[1];
+
+  // Decide what to ask next given all answers so far
+  const getNextQ = (allAnswers, nextIdx) => {
+    if (nextIdx >= DYNAMIC_QS.length) return null;
+    const combined = allAnswers.map(a => a.a).join(" ").toLowerCase();
+    // If previous answers already covered the next question's domain, adapt
+    if (nextIdx === 1) {
+      const coversUsers = /pso|pm|permission|access|role/.test(combined);
+      if (coversUsers) return {
+        q: "That helps clarify the user scope. What's the biggest risk you see with this approach right now — technical, organisational, or adoption-related?",
+        adaptNote: "Your previous answer already covered user scope, so I'm asking about risks instead."
+      };
+    }
+    if (nextIdx === 2) {
+      const coversSuccess = /metric|kpi|success|measure|target|goal|track/.test(combined);
+      if (coversSuccess) return {
+        q: "One more — is there anything about this problem or solution that you think I might have misunderstood so far?",
+        adaptNote: "Your answers already touched on success metrics, so I'm checking for any misunderstandings instead."
+      };
+    }
+    return {
+      q: DYNAMIC_QS[nextIdx].q,
+      adaptNote: null
+    };
+  };
+  React.useEffect(() => {
+    if (phase === "loading") {
+      const t = setTimeout(() => {
+        setCurrentQ({
+          q: DYNAMIC_QS[0].q,
+          adaptNote: null
+        });
+        setPhase("asking");
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+  const submitAnswer = () => {
+    if (!draft.trim()) return;
+    const newAnswered = [...answered, {
+      q: currentQ.q,
+      a: draft
+    }];
+    setAnswered(newAnswered);
+    setDraft("");
+    setTransitioning(true);
+    setTimeout(() => {
+      setTransitioning(false);
+      const next = getNextQ(newAnswered, qIdx + 1);
+      if (!next) {
+        setPhase("done");
+      } else {
+        setCurrentQ(next);
+        setQIdx(i => i + 1);
+      }
+    }, 900);
+  };
+  const saveEdit = idx => {
+    if (!editDraft.trim()) return;
+    const updated = answered.map((item, i) => i === idx ? {
+      ...item,
+      a: editDraft
+    } : item);
+    setAnswered(updated);
+    setEditingIdx(null);
+    // Re-evaluate current question if we're still asking
+    if (phase === "asking") {
+      const reeval = getNextQ(updated, qIdx);
+      if (reeval) setCurrentQ(reeval);
+    }
+  };
+  return /*#__PURE__*/React.createElement(Screen, {
+    kicker: "PRD GENERATION \u2014 STEP 3 OF 4 \xB7 CHECKPOINT",
+    title: "Let me clarify a few things",
+    hint: "Based on your problem and solution, I'll ask up to 3 questions \u2014 one at a time. Each question takes your previous answers into account.",
+    onBack: onBack,
+    onNext: phase === "done" ? onNext : null,
+    nextLabel: "Generate PRD draft",
+    checkpoint: true
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f8f8f8",
+      border: "1px solid #e5e5e5",
+      borderRadius: 10,
+      padding: "12px 16px",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontFamily: "monospace",
+      color: "#555",
+      marginBottom: 6,
+      display: "flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 10
+  }), "MY UNDERSTANDING SO FAR"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      lineHeight: 1.6,
+      color: "#222"
+    }
+  }, dirText.trim() ? `You want to ${dirText.trim().charAt(0).toLowerCase() + dirText.trim().slice(1).replace(/\.$/, "")}. Before generating the PRD, I want to confirm I've got this right.` : "Based on the problem you described, I'll ask a few questions to fill gaps before generating the PRD.")), answered.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, answered.map((item, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      border: "1px solid #e5e5e5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      background: "#fafafa",
+      fontSize: 12.5,
+      color: "#666",
+      lineHeight: 1.5,
+      borderBottom: "1px solid #eee"
+    }
+  }, item.q), editingIdx === i ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...s.ta,
+      minHeight: 66
+    },
+    className: "ta",
+    value: editDraft,
+    onChange: e => setEditDraft(e.target.value),
+    autoFocus: true
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 8,
+      justifyContent: "flex-end"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    style: s.textActionBtn,
+    onClick: () => setEditingIdx(null)
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnPrimary,
+      fontSize: 12,
+      padding: "5px 12px"
+    },
+    onClick: () => saveEdit(i)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 12
+  }), "Save"))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      fontSize: 13,
+      color: "#111",
+      lineHeight: 1.6,
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 9,
+      cursor: "pointer",
+      transition: "background .12s"
+    },
+    onClick: () => {
+      setEditingIdx(i);
+      setEditDraft(item.a);
+    },
+    title: "Click to edit"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 13,
+    color: "#16a34a",
+    style: {
+      flexShrink: 0,
+      marginTop: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, item.a), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#ccc",
+      fontFamily: "monospace",
+      flexShrink: 0,
+      paddingTop: 2
+    }
+  }, "edit"))))), phase === "loading" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "24px 0",
+      color: "#666",
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), "Reading your problem and solution\u2026"), phase === "asking" && transitioning && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "24px 0",
+      color: "#666",
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), "Got it \u2014 re-evaluating based on your answer\u2026"), phase === "asking" && !transitioning && currentQ && /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e5e5e5",
+      borderRadius: 10,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 16px",
+      background: "#fafafa",
+      borderBottom: "1px solid #eee",
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontFamily: "monospace",
+      color: "#555",
+      flexShrink: 0
+    }
+  }, "QUESTION ", qIdx + 1, " OF ", DYNAMIC_QS.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 3,
+      background: "#eee",
+      borderRadius: 3,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${qIdx / DYNAMIC_QS.length * 100}%`,
+      height: "100%",
+      background: "#111",
+      borderRadius: 3,
+      transition: "width .4s"
+    }
+  }))), currentQ.adaptNote && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 16px",
+      background: "#fffbeb",
+      borderBottom: "1px solid #fde68a",
+      fontSize: 11.5,
+      color: "#92400e",
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "RotateCcw",
+    size: 11
+  }), currentQ.adaptNote), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 500,
+      lineHeight: 1.65,
+      color: "#111",
+      marginBottom: 14
+    }
+  }, currentQ.q), /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...s.ta,
+      minHeight: 80
+    },
+    className: "ta",
+    value: draft,
+    onChange: e => setDraft(e.target.value),
+    placeholder: "Answer in your own words \u2014 correct any misunderstanding, add context you think is relevant\u2026"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    style: s.textActionBtn,
+    onClick: () => setPhase("done")
+  }, "Skip remaining questions"), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnPrimary,
+      fontSize: 12,
+      padding: "7px 14px",
+      opacity: !draft.trim() ? 0.45 : 1,
+      cursor: !draft.trim() ? "default" : "pointer"
+    },
+    onClick: submitAnswer
+  }, "Submit ", /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 13
+  }))))), phase === "done" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #bbf7d0",
+      background: "#f0fdf4",
+      borderRadius: 10,
+      padding: "16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 14,
+    color: "#16a34a"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13,
+      color: "#166534"
+    }
+  }, "Sufficient context collected")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "#166534",
+      lineHeight: 1.6
+    }
+  }, "I have enough to generate a solid PRD draft. Any remaining gaps will become Open Questions in the document.")));
+}
+
+/* ─── Step 4: Draft + Review ─── */
+function S4(_ref6) {
+  let prd = _ref6.prd,
+    setPrd = _ref6.setPrd,
+    reviewNote = _ref6.reviewNote,
+    setReviewNote = _ref6.setReviewNote,
+    diffs = _ref6.diffs,
+    submitReview = _ref6.submitReview,
+    decide = _ref6.decide,
+    allResolved = _ref6.allResolved,
+    setDiffs = _ref6.setDiffs,
+    onBack = _ref6.onBack,
+    onNext = _ref6.onNext;
+  const _useState51 = useState(true),
+    _useState52 = _slicedToArray(_useState51, 2),
+    generating = _useState52[0],
+    setGenerating = _useState52[1];
+  const _useState53 = useState(false),
+    _useState54 = _slicedToArray(_useState53, 2),
+    saved = _useState54[0],
+    setSaved = _useState54[1];
+  React.useEffect(() => {
+    const t = setTimeout(() => setGenerating(false), 1300);
+    return () => clearTimeout(t);
+  }, []);
+  const updateSection = (key, body) => setPrd(p => p.map(s => s.key === key ? {
+    ...s,
+    body,
+    filled: body.trim().length > 10
+  } : s));
+  const exportMD = () => {
+    const md = "# PRD Draft\n\n" + prd.map(s => `## ${s.label}\n_${s.desc}_\n\n${s.body || "TBD"}`).join("\n\n---\n\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([md], {
+      type: "text/markdown"
+    }));
+    a.download = "prd-draft.md";
+    a.click();
+  };
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+  if (generating) return /*#__PURE__*/React.createElement(Screen, {
+    kicker: "PRD GENERATION \u2014 STEP 4 OF 4",
+    title: "Generating PRD draft\u2026",
+    hint: null,
+    onBack: onBack,
+    onNext: null,
+    nextLabel: "Done \xB7 restart"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      color: "#666",
+      fontSize: 13,
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "spinner"
+  }), "Generating from your problem, solution, and clarifications\u2026"), [80, 55, 90, 60, 70, 55].map((h, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: 14,
+      width: "30%",
+      marginBottom: 8,
+      borderRadius: 4
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "skel",
+    style: {
+      height: h,
+      borderRadius: 8
+    }
+  }))));
+  return /*#__PURE__*/React.createElement(Screen, {
+    kicker: "PRD GENERATION \u2014 STEP 4 OF 4",
+    title: "PRD Draft",
+    hint: "Edit any section directly. Click a field to start writing.",
+    onBack: onBack,
+    onNext: onNext,
+    nextLabel: "Done \xB7 restart"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 20,
+      paddingBottom: 14,
+      borderBottom: "1px solid #eee"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#111",
+      flex: 1
+    }
+  }, "Request-level direct connect"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontFamily: "monospace",
+      color: "#555",
+      background: "#f5f5f5",
+      padding: "2px 8px",
+      borderRadius: 5
+    }
+  }, prd.filter(s => s.filled).length, "/", prd.length, " filled"), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnGhost,
+      fontSize: 12,
+      padding: "6px 13px",
+      ...(saved ? {
+        borderColor: "#bbf7d0",
+        color: "#16a34a",
+        background: "#f0fdf4"
+      } : {})
+    },
+    onClick: handleSave
+  }, saved ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 12
+  }), "Saved") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+    name: "Save",
+    size: 12
+  }), "Save")), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnGhost,
+      fontSize: 12,
+      padding: "6px 13px"
+    },
+    onClick: exportMD
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Download",
+    size: 12
+  }), "Export .md")), /*#__PURE__*/React.createElement("div", null, prd.map((sec, idx) => /*#__PURE__*/React.createElement("div", {
+    key: sec.key,
+    style: {
+      paddingBottom: 22,
+      marginBottom: 22,
+      borderBottom: idx < prd.length - 1 ? "1px solid #f0f0f0" : "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#111"
+    }
+  }, sec.label), sec.filled ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      fontFamily: "monospace",
+      background: "#f0fdf4",
+      color: "#16a34a",
+      padding: "1px 7px",
+      borderRadius: 5,
+      letterSpacing: ".03em"
+    }
+  }, "\u2713 filled") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      fontFamily: "monospace",
+      background: "#fffbeb",
+      color: "#b45309",
+      padding: "1px 7px",
+      borderRadius: 5,
+      letterSpacing: ".03em"
+    }
+  }, "TBD")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888",
+      marginBottom: 8,
+      fontFamily: "monospace"
+    }
+  }, sec.desc), /*#__PURE__*/React.createElement("textarea", {
+    className: "ta prd-ta",
+    style: {
+      ...s.ta,
+      minHeight: 72,
+      fontSize: 13,
+      background: "transparent",
+      border: "1px solid transparent",
+      padding: "8px 0",
+      resize: "none",
+      transition: "border .15s, background .15s, padding .15s"
+    },
+    value: sec.body,
+    onChange: e => updateSection(sec.key, e.target.value),
+    placeholder: `Add ${sec.label.toLowerCase()} here…`
+  })))), !diffs ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      paddingTop: 16,
+      borderTop: "1px solid #eee"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#555",
+      marginBottom: 9,
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Plus",
+    size: 12
+  }), "Have more context to add? Submit below to refine affected sections."), /*#__PURE__*/React.createElement("textarea", {
+    style: {
+      ...s.ta,
+      minHeight: 60,
+      fontSize: 12.5
+    },
+    className: "ta",
+    value: reviewNote,
+    onChange: e => setReviewNote(e.target.value),
+    placeholder: "e.g. First wave is PSO only \u2014 submit to reverse-trigger recomputation of all affected sections\u2026"
+  }), /*#__PURE__*/React.createElement("button", {
+    style: {
+      ...s.btnPrimary,
+      marginTop: 10,
+      opacity: !reviewNote.trim() ? 0.45 : 1,
+      cursor: !reviewNote.trim() ? "default" : "pointer"
+    },
+    onClick: () => reviewNote.trim() && submitReview()
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "CornerDownLeft",
+    size: 12
+  }), "Submit \xB7 reverse-trigger recompute")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      paddingTop: 16,
+      borderTop: "1px solid #eee"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#b45309",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "GitCompare",
+    size: 14
+  }), "This supplement reverse-triggered ", diffs.length, " related recomputations \u2014 confirm each diff"), diffs.map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id,
+    style: {
+      ...s.card,
+      ...(d.status === "accepted" ? {
+        borderColor: "#bbf7d0",
+        background: "#f0fdf4"
+      } : d.status === "kept" ? {
+        opacity: .55
+      } : {}),
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13
+    }
+  }, d.section), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontFamily: "monospace",
+      background: "#f3f4f6",
+      color: "#666",
+      padding: "2px 7px",
+      borderRadius: 5
+    }
+  }, "from step ", d.step), d.status !== "pending" && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      fontFamily: "monospace",
+      padding: "2px 8px",
+      borderRadius: 5,
+      color: d.status === "accepted" ? "#16a34a" : "#dc2626",
+      background: d.status === "accepted" ? "#f0fdf4" : "#fef2f2"
+    }
+  }, d.status === "accepted" ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 10
+  }), "accepted") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+    name: "X",
+    size: 10
+  }), "kept original"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fef2f2",
+      borderRadius: 7,
+      padding: "7px 10px",
+      fontSize: 12,
+      lineHeight: 1.6,
+      color: "#b91c1c",
+      marginBottom: 5,
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "monospace",
+      fontWeight: 700
+    }
+  }, "\u2212"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      textDecoration: "line-through",
+      opacity: .8
+    }
+  }, d.old)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f0fdf4",
+      borderRadius: 7,
+      padding: "7px 10px",
+      fontSize: 12,
+      lineHeight: 1.6,
+      color: "#166534",
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "monospace",
+      fontWeight: 700
+    }
+  }, "+"), d.nv), d.status === "pending" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "flex-end",
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    style: s.diffKeep,
+    onClick: () => decide(d.id, "kept")
+  }, "Keep original"), /*#__PURE__*/React.createElement("button", {
+    style: s.diffAccept,
+    onClick: () => decide(d.id, "accepted")
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 12
+  }), "Accept change")))), allResolved && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+      fontSize: 12,
+      color: "#166534",
+      background: "#f0fdf4",
+      border: "1px solid #bbf7d0",
+      padding: "11px 14px",
+      borderRadius: 9
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 13
+  }), "All changes resolved \u2014 accepted sections written back, recompute markers cleared.", /*#__PURE__*/React.createElement("button", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 11,
+      background: "none",
+      border: "1px solid #16a34a",
+      color: "#16a34a",
+      padding: "4px 10px",
+      borderRadius: 7,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    },
+    onClick: () => {
+      setDiffs(null);
+      setReviewNote("");
+    }
+  }, "Supplement another round"))));
+}
+
+/* ─── shared ─── */
+function Screen(_ref7) {
+  let kicker = _ref7.kicker,
+    title = _ref7.title,
+    hint = _ref7.hint,
+    checkpoint = _ref7.checkpoint,
+    children = _ref7.children,
+    onBack = _ref7.onBack,
+    onNext = _ref7.onNext,
+    nextLabel = _ref7.nextLabel;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      height: "100%"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "28px 44px 14px",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: s.kicker
+  }, kicker, checkpoint && /*#__PURE__*/React.createElement("span", {
+    style: s.cpTag
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "RotateCcw",
+    size: 10
+  }), "checkpoint \xB7 can return")), /*#__PURE__*/React.createElement("h1", {
+    style: s.h1
+  }, title), hint && /*#__PURE__*/React.createElement("p", {
+    style: s.hint
+  }, hint)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: "auto",
+      padding: "0 44px 16px"
+    },
+    className: "scrollable"
+  }, children), /*#__PURE__*/React.createElement("div", {
+    style: s.footer
+  }, onBack ? /*#__PURE__*/React.createElement("button", {
+    style: s.btnGhost,
+    onClick: onBack
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowLeft",
+    size: 13
+  }), "Back") : /*#__PURE__*/React.createElement("span", null), onNext && /*#__PURE__*/React.createElement("button", {
+    style: s.btnPrimary,
+    onClick: onNext
+  }, nextLabel, /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 13
+  }))));
+}
+function ConfBar(_ref8) {
+  let v = _ref8.v;
+  const pct = Math.round(v * 100);
+  const col = v >= 0.8 ? "#16a34a" : v >= 0.6 ? "#d97706" : "#dc2626";
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 10,
+      fontFamily: "monospace",
+      color: "#555"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 4,
+      background: "#eee",
+      borderRadius: 4,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: `${pct}%`,
+      background: col,
+      borderRadius: 4
+    }
+  })), pct, "%");
+}
+function StrengthTag(_ref9) {
+  let type = _ref9.type;
+  return type === "feedback" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontFamily: "monospace",
+      background: "#f0fdf4",
+      color: "#166534",
+      padding: "2px 8px",
+      borderRadius: 12,
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Check",
+    size: 9
+  }), "feedback-backed") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontFamily: "monospace",
+      background: "#fffbeb",
+      color: "#92400e",
+      padding: "2px 8px",
+      borderRadius: 12,
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 9
+  }), "model inference");
+}
+
+/* ─── styles ─── */
+const s = {
+  root: {
+    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    background: "#fff",
+    minHeight: "100%",
+    display: "flex",
+    flexDirection: "column",
+    color: "#111",
+    fontSize: 14
+  },
+  topbar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 24px",
+    height: 52,
+    borderBottom: "1px solid #e5e5e5",
+    flexShrink: 0
+  },
+  brand: {
+    fontWeight: 700,
+    fontSize: 15
+  },
+  langBtn: {
+    fontSize: 12,
+    background: "none",
+    border: "1px solid #ddd",
+    padding: "5px 12px",
+    borderRadius: 6,
+    cursor: "pointer",
+    color: "#444"
+  },
+  stepnav: {
+    display: "flex",
+    alignItems: "center",
+    padding: "0 24px",
+    height: 54,
+    borderBottom: "1px solid #e5e5e5",
+    flexShrink: 0
+  },
+  stepItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: "0 12px",
+    height: "100%",
+    position: "relative",
+    fontFamily: "inherit"
+  },
+  stepCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: 700,
+    flexShrink: 0,
+    transition: "all .15s"
+  },
+  stepLabel: {
+    fontSize: 14
+  },
+  stepUnderline: {
+    position: "absolute",
+    bottom: 0,
+    left: 12,
+    right: 12,
+    height: 2,
+    background: "#111",
+    borderRadius: 1
+  },
+  stepSep: {
+    color: "#ccc",
+    fontSize: 16,
+    margin: "0 4px",
+    userSelect: "none"
+  },
+  body: {
+    display: "flex",
+    flex: 1,
+    minHeight: 0,
+    height: "calc(100vh - 108px)"
+  },
+  sidebar: {
+    width: 250,
+    flexShrink: 0,
+    borderRight: "1px solid #ebebeb",
+    background: "#ffffff",
+    display: "flex",
+    flexDirection: "column",
+    overflowY: "auto"
+  },
+  sideTop: {
+    padding: "24px 20px 0"
+  },
+  sideLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    color: "#666",
+    marginBottom: 6
+  },
+  sideMeta: {
+    fontSize: 12,
+    color: "#555",
+    marginBottom: 4
+  },
+  sideName: {
+    fontSize: 17,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    marginBottom: 10
+  },
+  sideDesc: {
+    fontSize: 13,
+    color: "#444",
+    lineHeight: 1.55,
+    paddingBottom: 20,
+    borderBottom: "1px solid #e5e5e5"
+  },
+  sideSection: {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    color: "#666",
+    padding: "16px 20px 8px"
+  },
+  subStepList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    padding: "0 10px"
+  },
+  subStepItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    padding: "8px 10px",
+    borderRadius: 8,
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12,
+    transition: "background .15s",
+    textAlign: "left"
+  },
+  subNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10,
+    fontWeight: 700,
+    flexShrink: 0,
+    transition: "all .15s"
+  },
+  subText: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 1
+  },
+  cpDot: {
+    display: "inline-block",
+    width: 5,
+    height: 5,
+    borderRadius: "50%",
+    background: "#f59e0b",
+    marginLeft: 5,
+    verticalAlign: "middle"
+  },
+  dirtyTag: {
+    fontSize: 8.5,
+    background: "#f59e0b",
+    color: "#fff",
+    padding: "1px 5px",
+    borderRadius: 4,
+    marginLeft: 4,
+    fontFamily: "monospace"
+  },
+  inputItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    padding: "6px 12px",
+    fontSize: 13,
+    color: "#333",
+    background: "#f3f4f6",
+    margin: "0 10px",
+    borderRadius: 7
+  },
+  grayBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "#ccc",
+    flexShrink: 0
+  },
+  outputItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    padding: "6px 20px",
+    fontSize: 12.5,
+    background: "#fff",
+    margin: "0 10px",
+    borderRadius: 7,
+    border: "1px solid #d1fae5"
+  },
+  greenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "#16a34a",
+    flexShrink: 0
+  },
+  sideProgress: {
+    marginTop: "auto",
+    padding: "16px 20px",
+    borderTop: "1px solid #e5e5e5",
+    display: "flex",
+    justifyContent: "space-between"
+  },
+  main: {
+    flex: 1,
+    minWidth: 0,
+    background: "#fff",
+    display: "flex",
+    flexDirection: "column"
+  },
+  kicker: {
+    fontSize: 10.5,
+    fontWeight: 600,
+    letterSpacing: "0.07em",
+    color: "#555",
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    marginBottom: 10
+  },
+  cpTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 10,
+    background: "#fffbeb",
+    color: "#b45309",
+    padding: "2px 8px",
+    borderRadius: 12,
+    letterSpacing: 0
+  },
+  h1: {
+    fontSize: 28,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    letterSpacing: "-0.02em"
+  },
+  hint: {
+    fontSize: 13.5,
+    color: "#444",
+    marginTop: 9,
+    lineHeight: 1.55,
+    maxWidth: 620
+  },
+  footer: {
+    padding: "14px 44px",
+    borderTop: "1px solid #eee",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexShrink: 0,
+    background: "#fff"
+  },
+  ta: {
+    width: "100%",
+    resize: "vertical",
+    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    fontSize: 14,
+    color: "#111",
+    background: "#fafafa",
+    border: "1px solid #e5e5e5",
+    borderRadius: 8,
+    padding: "10px 13px",
+    lineHeight: 1.6,
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "border .15s"
+  },
+  fieldLabel: {
+    fontSize: 11,
+    color: "#555",
+    fontFamily: "monospace",
+    marginBottom: 6
+  },
+  card: {
+    background: "#fafafa",
+    border: "1px solid #e5e5e5",
+    borderRadius: 10,
+    padding: "13px 14px"
+  },
+  cardSel: {
+    borderColor: "#111",
+    background: "#fff",
+    boxShadow: "0 0 0 1px #111"
+  },
+  monoTag: {
+    fontSize: 12,
+    fontFamily: "monospace",
+    color: "#444",
+    fontWeight: 500
+  },
+  removeBtn: {
+    marginLeft: "auto",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 11,
+    background: "none",
+    border: "none",
+    color: "#888",
+    cursor: "pointer",
+    fontFamily: "inherit"
+  },
+  ghostBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    fontFamily: "inherit",
+    background: "none",
+    border: "1px dashed #ddd",
+    color: "#555",
+    padding: "5px 11px",
+    borderRadius: 7,
+    cursor: "pointer"
+  },
+  fileChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    fontSize: 11,
+    fontFamily: "monospace",
+    background: "#f0fdf4",
+    color: "#166534",
+    padding: "4px 8px 4px 10px",
+    borderRadius: 7
+  },
+  linkBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    fontSize: 12,
+    fontFamily: "inherit",
+    background: "none",
+    border: "none",
+    color: "#111",
+    cursor: "pointer",
+    textDecoration: "underline",
+    textDecorationStyle: "dotted",
+    padding: 0
+  },
+  rankBadge: {
+    fontSize: 12,
+    fontFamily: "monospace",
+    fontWeight: 600,
+    color: "#555",
+    paddingTop: 1,
+    flexShrink: 0
+  },
+  btnPrimary: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    fontFamily: "inherit",
+    fontSize: 13.5,
+    fontWeight: 500,
+    color: "#fff",
+    background: "#111",
+    border: "1px solid #111",
+    padding: "9px 16px",
+    borderRadius: 8,
+    cursor: "pointer"
+  },
+  btnGhost: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    fontFamily: "inherit",
+    fontSize: 13.5,
+    color: "#444",
+    background: "none",
+    border: "1px solid #ddd",
+    padding: "9px 16px",
+    borderRadius: 8,
+    cursor: "pointer"
+  },
+  // top problems
+  topProbBox: {
+    border: "1px solid #e5e5e5",
+    borderRadius: 10,
+    overflow: "hidden",
+    marginBottom: 4
+  },
+  topProbHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "10px 14px",
+    background: "#fafafa",
+    borderBottom: "1px solid #eee"
+  },
+  topProbRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 12,
+    padding: "11px 14px",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    width: "100%",
+    borderBottom: "1px solid #f0f0f0",
+    transition: "background .12s"
+  },
+  topProbRowSel: {
+    background: "#f8f8f8",
+    boxShadow: "inset 3px 0 0 #111"
+  },
+  rankNum: {
+    fontSize: 11,
+    fontFamily: "monospace",
+    color: "#666",
+    paddingTop: 3,
+    flexShrink: 0,
+    width: 20
+  },
+  impactTag: {
+    fontSize: 10,
+    fontFamily: "monospace",
+    padding: "2px 7px",
+    borderRadius: 12,
+    flexShrink: 0,
+    marginTop: 2
+  },
+  industrySelect: {
+    fontSize: 12,
+    border: "1px solid #ddd",
+    borderRadius: 6,
+    padding: "4px 8px",
+    fontFamily: "inherit",
+    background: "#fff",
+    cursor: "pointer",
+    outline: "none"
+  },
+  filterSelect: {
+    fontSize: 12,
+    border: "1px solid #ddd",
+    borderRadius: 7,
+    padding: "5px 10px",
+    fontFamily: "inherit",
+    background: "#fff",
+    cursor: "pointer",
+    outline: "none",
+    color: "#333"
+  },
+  evidenceBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 11.5,
+    fontFamily: "monospace",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    border: "1px solid #bfdbfe",
+    padding: "5px 10px",
+    borderRadius: 8,
+    cursor: "pointer",
+    outline: "none"
+  },
+  // prd
+  prdBox: {
+    border: "1px solid #e5e5e5",
+    borderRadius: 10,
+    overflow: "hidden"
+  },
+  prdHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    padding: "12px 16px",
+    borderBottom: "1px solid #eee",
+    fontSize: 13,
+    fontWeight: 600,
+    background: "#fafafa"
+  },
+  prdTpl: {
+    marginLeft: "auto",
+    fontSize: 10,
+    fontWeight: 400,
+    color: "#555",
+    fontFamily: "monospace",
+    background: "#fff",
+    border: "1px solid #e5e5e5",
+    padding: "2px 8px",
+    borderRadius: 5
+  },
+  prdRow: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 16px",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    color: "inherit",
+    textAlign: "left"
+  },
+  prdBody: {
+    padding: "0 16px 14px 36px",
+    fontSize: 13.5,
+    color: "#333",
+    lineHeight: 1.65
+  },
+  prdFoot: {
+    padding: "10px 16px",
+    background: "#fafafa",
+    fontSize: 11,
+    color: "#666",
+    fontFamily: "monospace"
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    flexShrink: 0
+  },
+  diffKeep: {
+    fontFamily: "inherit",
+    fontSize: 12,
+    padding: "6px 12px",
+    borderRadius: 7,
+    background: "none",
+    border: "1px solid #ddd",
+    color: "#666",
+    cursor: "pointer"
+  },
+  diffAccept: {
+    fontFamily: "inherit",
+    fontSize: 12,
+    padding: "6px 12px",
+    borderRadius: 7,
+    background: "#111",
+    border: "1px solid #111",
+    color: "#fff",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5
+  },
+  sectionBlock: {
+    border: "1px solid #e5e5e5",
+    borderRadius: 10,
+    overflow: "hidden",
+    background: "#fff"
+  },
+  sectionBlockHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "11px 14px",
+    background: "#fafafa",
+    borderBottom: "1px solid #eee",
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: "0.04em",
+    color: "#333"
+  },
+  sourceTag: {
+    fontSize: 11,
+    fontFamily: "monospace",
+    background: "#fff4ed",
+    color: "#9a3412",
+    padding: "2px 8px",
+    borderRadius: 6,
+    fontWeight: 500
+  },
+  clearSel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 11,
+    background: "none",
+    border: "none",
+    color: "#666",
+    cursor: "pointer",
+    fontFamily: "monospace"
+  },
+  textActionBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    fontSize: 11,
+    fontFamily: "inherit",
+    background: "none",
+    border: "none",
+    color: "#555",
+    cursor: "pointer",
+    padding: "4px 8px",
+    borderRadius: 6,
+    transition: "color .15s"
+  },
+  segGroup: {
+    display: "inline-flex",
+    gap: 6,
+    marginBottom: 16
+  },
+  segBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    fontFamily: "inherit",
+    background: "none",
+    border: "1px solid #ddd",
+    color: "#666",
+    padding: "7px 13px",
+    borderRadius: 8,
+    cursor: "pointer"
+  },
+  segBtnOn: {
+    background: "#111",
+    color: "#fff",
+    borderColor: "#111"
+  }
+};
+const GLOBAL_CSS = `@keyframes spin{to{transform:rotate(360deg)}}@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}.skel{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;}.prd-ta:hover{border-color:#e5e5e5!important;background:#fafafa!important;padding:8px 10px!important}.prd-ta:focus{border-color:#111!important;background:#fff!important;padding:8px 10px!important;box-shadow:0 0 0 3px rgba(0,0,0,.05)!important}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.spinner{width:15px;height:15px;border:2px solid #e5e5e5;border-top-color:#111;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}.scrollable::-webkit-scrollbar{width:6px}.scrollable::-webkit-scrollbar-thumb{background:#e0e0e0;border-radius:6px}.ta:focus{border-color:#111!important;background:#fff!important;box-shadow:0 0 0 3px rgba(0,0,0,.06)}.topProbRow:hover{background:#fafafa!important}`;
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(PRDFlow));
+    } catch(e) {
+      document.getElementById('root').innerHTML =
+        '<div style="padding:40px;font-family:monospace;color:#c00;font-size:13px">' +
+        '<strong>App Error:</strong><br>' + e.message + '<br><br>' +
+        '<pre style="font-size:11px;white-space:pre-wrap">' + (e.stack||'') + '</pre></div>';
+    }
+  }
+  </script>
+</body>
+</html>
