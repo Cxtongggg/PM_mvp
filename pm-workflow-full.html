@@ -1,0 +1,2878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf9; --surface: #ffffff; --surface2: #f4f4f3;
+    --border: #e5e5e3; --border-dark: #d0d0ce;
+    --text: #1a1a18; --text-secondary: #6b6b68; --text-tertiary: #a8a8a5;
+    --step-done: #4a9d6f;
+    --tag-in-bg: #f4f4f3; --tag-in-text: #4a4a47;
+    --tag-out-bg: #f0faf4; --tag-out-text: #2d7a50; --tag-out-border: #b8e4c8;
+    --sans: 'Geist', system-ui, sans-serif; --mono: 'Geist Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
+
+  .topbar { height: 48px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+  .topbar-left { display: flex; align-items: center; gap: 1.25rem; }
+  .logo { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); }
+  .topbar-divider { width: 1px; height: 16px; background: var(--border); }
+  .project-name { font-size: 13px; color: var(--text-secondary); }
+  .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+  .topbar-btn { font-size: 12px; font-family: var(--sans); color: var(--text-secondary); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; cursor: pointer; height: 28px; display: flex; align-items: center; transition: all 0.15s; }
+  .topbar-btn:hover { border-color: var(--border-dark); color: var(--text); }
+
+  .step-nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: stretch; overflow-x: auto; scrollbar-width: none; position: sticky; top: 48px; z-index: 90; flex-shrink: 0; }
+  .step-nav::-webkit-scrollbar { display: none; }
+  .step-tab { display: flex; align-items: center; gap: 9px; padding: 0 1.25rem; height: 44px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; flex-shrink: 0; transition: background 0.15s; user-select: none; }
+  .step-tab:hover { background: var(--surface2); }
+  .step-tab.active { border-bottom-color: var(--text); }
+  .step-circle { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-dark); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-tertiary); flex-shrink: 0; transition: all 0.2s; }
+  .step-tab.active .step-circle { background: var(--text); border-color: var(--text); color: white; }
+  .step-tab.done .step-circle { background: var(--step-done); border-color: var(--step-done); color: white; font-size: 11px; }
+  .step-tab-label { font-size: 13px; color: var(--text-secondary); transition: color 0.15s; }
+  .step-tab.active .step-tab-label { color: var(--text); font-weight: 500; }
+  .step-connector { display: flex; align-items: center; padding: 0 2px; color: var(--border-dark); font-size: 13px; flex-shrink: 0; height: 44px; pointer-events: none; }
+
+  .main { flex: 1; display: grid; grid-template-columns: 240px 1fr; min-height: 0; height: calc(100vh - 92px); }
+
+  .sidebar { border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; overflow-y: auto; position: sticky; top: 92px; height: calc(100vh - 92px); }
+  .sidebar-top { padding: 1.25rem; flex-shrink: 0; }
+  .sidebar-label { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-tertiary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.6rem; }
+  .sidebar-step-num { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); margin-bottom: 3px; }
+  .sidebar-step-title { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.3; margin-bottom: 0.75rem; }
+  .sidebar-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+  .sidebar-divider { height: 1px; background: var(--border); }
+  .io-section { padding: 1rem 1.25rem; }
+  .io-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .io-item { font-size: 12px; padding: 5px 9px; border-radius: 5px; display: flex; align-items: center; gap: 6px; }
+  .io-item.in { background: var(--tag-in-bg); color: var(--tag-in-text); }
+  .io-item.out { background: var(--tag-out-bg); color: var(--tag-out-text); border: 1px solid var(--tag-out-border); }
+  .io-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .io-item.in .io-dot { background: var(--text-tertiary); }
+  .io-item.out .io-dot { background: var(--step-done); }
+  .sidebar-progress { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .progress-text { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .progress-bar-wrap { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--text); border-radius: 2px; transition: width 0.4s ease; }
+
+  .content-wrap { overflow-y: auto; display: flex; flex-direction: column; }
+  .content { padding: 2rem 2.5rem; flex: 1; max-width: 900px; }
+  .content-header { margin-bottom: 1.75rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .content-eyebrow { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+  .content-title { font-size: 20px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .content-sub { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+  .card-row { display: grid; gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; }
+  .metric-label { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+  .metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  .workspace { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; }
+  .workspace-header { padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); flex-wrap: wrap; gap: 8px; }
+  .workspace-title { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .workspace-body { padding: 1.1rem; }
+
+  .btn { font-size: 13px; font-family: var(--sans); padding: 7px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; height: 34px; display: flex; align-items: center; }
+  .btn:hover { border-color: var(--border-dark); color: var(--text); }
+  .btn.primary { background: var(--text); color: white; border-color: var(--text); font-weight: 500; }
+  .btn.primary:hover { opacity: 0.85; }
+  .ws-btn { font-size: 12px; font-family: var(--sans); padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+  .ws-btn:hover { border-color: var(--border-dark); color: var(--text); }
+  .ws-btn-primary { background: var(--text) !important; color: white !important; border-color: var(--text) !important; font-weight: 500; }
+  .ws-btn-primary:hover { opacity: 0.85 !important; }
+  .ws-select { font-size: 12px; font-family: var(--sans); padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); cursor: pointer; outline: none; height: 28px; }
+
+  .inner-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .inner-tab { font-size: 13px; font-family: var(--sans); padding: 8px 18px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-secondary); cursor: pointer; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+  .inner-tab:hover { color: var(--text); }
+  .inner-tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .insight-table { width: 100%; border-collapse: collapse; }
+  .insight-table th { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); background: var(--bg); font-weight: 500; }
+  .insight-table td { padding: 11px 14px; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .insight-table tr:last-child td { border-bottom: none; }
+  .insight-table tr:hover td { background: var(--bg); }
+  .ins-del { background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; line-height: 1; transition: color 0.15s, background 0.15s; }
+  .ins-del:hover { color: #c0392b; background: #fdf0f0; }
+
+  .score-row { display: grid; grid-template-columns: 110px 1fr 40px; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .score-label { font-size: 12px; color: var(--text-secondary); }
+  .score-bar-wrap { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .score-bar { height: 100%; background: var(--text); border-radius: 3px; transition: width 0.4s ease; }
+  .score-val { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); text-align: right; }
+
+  .schedule-banner { background: #f0f7ff; border: 1px solid #c8deff; border-radius: 8px; padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; gap: 12px; flex-wrap: wrap; }
+  .schedule-banner-left { display: flex; align-items: center; gap: 10px; }
+  .schedule-text { font-size: 13px; color: #1e4080; }
+  .schedule-text strong { font-weight: 500; }
+  .schedule-meta { font-size: 11px; color: #4a72b8; margin-top: 2px; }
+  .schedule-btns { display: flex; gap: 6px; flex-shrink: 0; }
+  .schedule-btn { font-size: 11px; font-family: var(--sans); padding: 4px 10px; border-radius: 5px; border: 1px solid #a0bfee; background: white; color: #1e4080; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .schedule-btn:hover { background: #e8f0ff; }
+  .schedule-btn.run { background: #1e4080; color: white; border-color: #1e4080; }
+  .schedule-btn.run:hover { opacity: 0.85; }
+
+  .output-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; }
+  .output-card-header { padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); gap: 8px; }
+  .output-card-title { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .output-body { padding: 1.1rem; }
+  .field-group { margin-bottom: 1rem; }
+  .field-group:last-child { margin-bottom: 0; }
+  .field-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+  .field-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 11px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; resize: vertical; transition: border-color 0.15s; }
+  .field-input:focus { border-color: var(--border-dark); }
+  .field-input::placeholder { color: var(--text-tertiary); }
+  textarea.field-input { min-height: 80px; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); color: var(--text-secondary); background: var(--surface2); }
+  .tag-x { cursor: pointer; opacity: 0.5; font-size: 12px; line-height: 1; }
+  .tag-x:hover { opacity: 1; color: #c0392b; }
+
+  .run-log { display: flex; flex-direction: column; gap: 8px; }
+  .run-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+  .run-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .run-dot.success { background: #4a9d6f; }
+  .run-dot.scheduled { background: var(--border-dark); }
+  .run-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .run-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .run-badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-secondary); margin-left: auto; flex-shrink: 0; }
+
+  .chat-wrap { display: flex; flex-direction: column; height: 440px; }
+  .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 1rem; }
+  .chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+  .chat-msg.user { flex-direction: row-reverse; }
+  .chat-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .chat-avatar.ai { background: #1a1a18; color: white; font-family: var(--mono); font-size: 12px; }
+  .chat-avatar.usr { background: #e8f0ff; color: #3050b0; font-size: 11px; }
+  .chat-bubble { max-width: 82%; padding: 9px 13px; border-radius: 10px; font-size: 13px; line-height: 1.65; }
+  .chat-msg.ai .chat-bubble { background: var(--surface2); color: var(--text); border-radius: 2px 10px 10px 10px; }
+  .chat-msg.user .chat-bubble { background: var(--text); color: white; border-radius: 10px 2px 10px 10px; }
+  .chat-bubble ul { margin: 6px 0 2px 16px; }
+  .chat-bubble li { margin-bottom: 4px; }
+  .chat-suggestions { padding: 0.6rem 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px; }
+  .chat-sug { font-size: 12px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+  .chat-sug:hover { border-color: var(--border-dark); color: var(--text); background: var(--surface2); }
+  .chat-input-row { padding: 0.75rem 1rem; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-end; }
+  .chat-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: var(--sans); color: var(--text); outline: none; resize: none; min-height: 38px; max-height: 100px; transition: border-color 0.15s; line-height: 1.5; }
+  .chat-input:focus { border-color: var(--border-dark); }
+  .chat-input::placeholder { color: var(--text-tertiary); }
+  .chat-send { width: 34px; height: 34px; border-radius: 7px; background: var(--text); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.15s; }
+  .chat-send:hover { opacity: 0.8; }
+  .typing-indicator { display: flex; gap: 4px; padding: 4px 2px; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); animation: tp 1.2s ease-in-out infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes tp { 0%,80%,100%{opacity:0.25;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+  .gen-wrap { display:none;padding:1.5rem;text-align:center }
+  .gen-dots { display:flex;gap:5px;justify-content:center }
+  .gen-dots span { width:6px;height:6px;border-radius:50%;background:var(--text-tertiary);animation:dp 1.2s ease-in-out infinite }
+  .gen-dots span:nth-child(2){animation-delay:0.2s}.gen-dots span:nth-child(3){animation-delay:0.4s}
+  @keyframes dp{0%,80%,100%{opacity:0.25;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
+  .gen-sub { font-size:12px;color:var(--text-tertiary);margin-top:8px }
+
+  .ai-badge { display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:#f0f4ff;color:#3050b0;border:1px solid #c8d8ff }
+  .out-num { font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:var(--surface2);color:var(--text-tertiary);flex-shrink:0 }
+
+  /* ── STEP 2 ── */
+  .s2-panel { display:none }
+  .s2-panel.active { display:block }
+
+  .s2-priority-pill { font-family:var(--mono); font-size:11px; padding:3px 10px; border-radius:20px; }
+
+  .s2-ai-banner { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; background:#f0f4ff; border:1px solid #c8d8ff; border-radius:8px; padding:1rem 1.1rem; margin-bottom:1rem; }
+
+  .s2-chip { display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:5px 12px; border-radius:20px; border:1px solid #c8d8ff; background:white; color:#3050b0; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+  .s2-chip:hover { background:#e8f0ff; }
+  .s2-chip.added { background:#f0faf4; border-color:#b8e4c8; color:#2d7a50; cursor:default; }
+
+  .s2-comp-row { display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; }
+  .s2-comp-initial { width:34px; height:34px; border-radius:7px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--text-secondary); flex-shrink:0; }
+  .s2-comp-name { font-size:13px; font-weight:500; color:var(--text); }
+  .s2-comp-product { font-size:12px; color:var(--text-secondary); }
+  .s2-comp-del { background:none; border:none; color:var(--text-tertiary); cursor:pointer; font-size:16px; margin-left:auto; padding:2px 4px; transition:color 0.15s; }
+  .s2-comp-del:hover { color:#c0392b; }
+
+  .s2-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .s2-table th { font-family:var(--mono); font-size:10px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.07em; padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); background:var(--bg); font-weight:500; white-space:nowrap; }
+  .s2-table td { padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:top; line-height:1.5; }
+  .s2-table tr:last-child td { border-bottom:none; }
+  .s2-table tr:hover td { background:var(--bg); }
+  .s2-feat-name { font-size:13px; font-weight:500; color:var(--text); margin-bottom:4px; }
+  .s2-feat-why { font-size:12px; color:var(--text-secondary); line-height:1.55; }
+  .s2-tick { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:11px; font-weight:500; }
+  .s2-tick.yes { background:#f0faf4; color:#2d7a50; border:1px solid #b8e4c8; }
+  .s2-tick.partial { background:#fef3c0; color:#92580a; border:1px solid #fcd34d; }
+  .s2-tick.no { background:var(--surface2); color:var(--text-tertiary); border:1px solid var(--border); }
+  .s2-applic { display:inline-flex; align-items:center; font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+  .s2-applic.high { background:#f0faf4; color:#2d7a50; border:1px solid #b8e4c8; }
+  .s2-applic.medium { background:#fef3c0; color:#92580a; border:1px solid #fcd34d; }
+  .s2-applic.low { background:var(--surface2); color:var(--text-tertiary); border:1px solid var(--border); }
+
+  .s2-fb-item { padding:9px 32px 9px 12px; background:var(--bg); border:1px solid var(--border); border-left:3px solid #3050b0; border-radius:6px; font-size:13px; color:var(--text); line-height:1.5; position:relative; }
+  .s2-fb-del { position:absolute; top:6px; right:8px; background:none; border:none; color:var(--text-tertiary); cursor:pointer; font-size:14px; }
+  .s2-fb-del:hover { color:#c0392b; }
+
+  .s2-rec-card { display:flex; align-items:flex-start; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem 1.1rem; margin-bottom:9px; cursor:pointer; transition:border-color 0.15s, box-shadow 0.15s; }
+  .s2-rec-card:hover { border-color:var(--border-dark); }
+  .s2-rec-card.selected { border-color:#4a9d6f; box-shadow:0 0 0 3px rgba(74,157,111,0.1); }
+  .s2-rec-check { width:20px; height:20px; border-radius:4px; border:1.5px solid var(--border-dark); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; font-size:12px; color:transparent; transition:all 0.15s; }
+  .s2-rec-card.selected .s2-rec-check { background:#4a9d6f; border-color:#4a9d6f; color:white; }
+  .s2-rec-info { flex:1; }
+  .s2-rec-title { font-size:14px; font-weight:500; color:var(--text); display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:5px; }
+  .s2-rec-desc { font-size:12px; color:var(--text-secondary); line-height:1.6; }
+  .s2-rec-meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .s2-meta-tag { font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:4px; background:var(--surface2); color:var(--text-secondary); border:1px solid var(--border); }
+
+  .s2-dots { display:flex; gap:5px; justify-content:center; }
+  .s2-dots span { width:6px; height:6px; border-radius:50%; background:var(--text-tertiary); animation:dotPulse 1.2s ease-in-out infinite; }
+  .s2-dots span:nth-child(2) { animation-delay:0.2s; }
+  .s2-dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes dotPulse { 0%,80%,100%{opacity:.25;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
+  /* PROBLEM STATEMENT CARDS */
+  .ps-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1rem; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+  .ps-card:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+  .ps-card.selected { border-color: #4a9d6f; box-shadow: 0 0 0 3px rgba(74,157,111,0.12); }
+  .ps-card.dimmed { opacity: 0.45; }
+
+  .ps-card-header { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem; background: var(--bg); border-bottom: 1px solid var(--border); gap: 12px; transition: background 0.2s; }
+  .ps-card.selected .ps-card-header { background: #f0faf4; }
+
+  .ps-card-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .ps-rank { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
+  .ps-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .ps-card-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+
+  /* SELECTION CIRCLE */
+  .ps-select-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border-dark); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: border-color 0.2s, background 0.2s; }
+  .ps-select-btn:hover { border-color: #4a9d6f; }
+  .ps-select-ring { width: 10px; height: 10px; border-radius: 50%; background: transparent; transition: background 0.15s; }
+  .ps-select-btn.active { border-color: #4a9d6f; background: #4a9d6f; }
+  .ps-select-btn.active .ps-select-ring { background: white; }
+
+  .ps-score-pill { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px; }
+  .ps-score-num { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .ps-score-label { font-family: var(--mono); font-size: 10px; }
+  .ps-card-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1.1rem; }
+  .ps-section { display: flex; flex-direction: column; gap: 8px; }
+  .ps-section-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .ps-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .ps-textarea { font-size: 13px; line-height: 1.6; }
+  .ps-segment-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ps-seg-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); color: var(--tag-in-text); background: var(--tag-in-bg); }
+  .ps-score-breakdown { display: flex; flex-direction: column; gap: 7px; }
+  .ps-score-mini-row { display: grid; grid-template-columns: 100px 1fr 60px 20px; align-items: center; gap: 8px; }
+  .ps-mini-label { font-size: 11px; color: var(--text-secondary); }
+  .ps-mini-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .ps-mini-bar { height: 100%; background: var(--text); border-radius: 2px; transition: width 0.3s; }
+  .ps-mini-slider { width: 100%; cursor: pointer; accent-color: var(--text); }
+  .ps-mini-val { font-family: var(--mono); font-size: 10px; color: var(--text-secondary); text-align: right; }
+  .ps-metrics-list { display: flex; flex-direction: column; gap: 6px; }
+  .ps-metric-row { display: flex; align-items: center; gap: 8px; }
+  .ps-metric-name { flex: 1; }
+
+  .out-num { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); background: var(--surface2); padding: 2px 7px; border-radius: 4px; }
+  .gen-wrap { display: none; padding: 1.5rem; text-align: center; }
+  .gen-dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 8px; }
+  .gen-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); animation: dotPulse 1.2s ease-in-out infinite; }
+  .gen-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .gen-dots span:nth-child(3) { animation-delay: 0.4s; }
+  .gen-sub { font-size: 12px; color: var(--text-tertiary); }
+  @keyframes dotPulse { 0%,80%,100%{opacity:.25;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
+  .ai-badge { display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:#f0f4ff;color:#3050b0;border:1px solid #c8d8ff }
+
+  .action-bar { display:flex;align-items:center;justify-content:space-between;padding:0.9rem 2.5rem;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0 }
+  .action-hint { font-size:12px;color:var(--text-tertiary) }
+  .action-btns { display:flex;gap:8px }
+
+  .step-panel { display:none }
+  .step-panel.active { display:flex;flex-direction:column;flex:1 }
+
+  .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.2);z-index:200;align-items:center;justify-content:center }
+  .modal-overlay.open { display:flex }
+  .modal { background:var(--surface);border:1px solid var(--border);border-radius:10px;width:480px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.10) }
+  .modal-header { padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between }
+  .modal-title { font-size:14px;font-weight:500 }
+  .modal-close { background:none;border:none;font-size:20px;color:var(--text-tertiary);cursor:pointer;line-height:1;padding:2px }
+  .modal-close:hover { color:var(--text) }
+  .modal-body { padding:1.25rem }
+  .modal-footer { padding:0.9rem 1.25rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px }
+
+  /* ── STEPS 3 & 4 shared ── */
+  .s3-panel,.s4-panel { display:none }
+  .s3-panel.active,.s4-panel.active { display:block }
+
+  /* Feature row in step 3 brief */
+  .s3-feat-row { display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;transition:border-color 0.15s }
+  .s3-feat-row.disabled { opacity:0.45 }
+  .s3-feat-toggle { width:36px;height:20px;border-radius:10px;background:var(--text);border:none;cursor:pointer;position:relative;flex-shrink:0;margin-top:3px;transition:background 0.2s }
+  .s3-feat-toggle::after { content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:white;transition:left 0.2s }
+  .s3-feat-toggle.off { background:var(--border-dark) }
+  .s3-feat-toggle.off::after { left:19px }
+  .s3-feat-title { font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px }
+  .s3-feat-desc { font-size:12px;color:var(--text-secondary);line-height:1.55 }
+  .s3-feat-tier { font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px }
+
+  /* Story group */
+  .s3-story-group { background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem }
+  .s3-story-group-header { padding:0.75rem 1rem;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between }
+  .s3-story-group-title { font-size:13px;font-weight:500;color:var(--text) }
+  .s3-story-body { padding:0.75rem 1rem;display:flex;flex-direction:column;gap:8px }
+  .s3-story-row { display:flex;align-items:flex-start;gap:10px }
+  .s3-story-text { flex:1;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;outline:none;resize:none;line-height:1.55;font-family:var(--sans) }
+  .s3-story-text:focus { border-color:var(--border-dark) }
+
+  /* Scope card */
+  .s3-scope-card { background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem }
+  .s3-scope-header { padding:0.75rem 1rem;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px }
+  .s3-scope-body { padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem }
+  .s3-scope-col-label { font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:5px }
+  .s3-scope-in { border-left:3px solid #4a9d6f }
+  .s3-scope-out { border-left:3px solid var(--border-dark) }
+  .s3-scope-list { display:flex;flex-direction:column;gap:5px }
+  .s3-scope-item { display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text);line-height:1.5 }
+  .s3-scope-ac { margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);grid-column:1/-1 }
+
+  /* Design brief proto story selector */
+  .s3-proto-story { display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s;margin-bottom:6px }
+  .s3-proto-story:hover { border-color:var(--border-dark) }
+  .s3-proto-story.selected { border-color:#4a9d6f;box-shadow:0 0 0 2px rgba(74,157,111,0.12) }
+  .s3-proto-check { width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:11px;color:transparent;transition:all 0.15s }
+  .s3-proto-story.selected .s3-proto-check { background:#4a9d6f;border-color:#4a9d6f;color:white }
+
+  /* Step 4 flow row */
+  .s4-flow-row { display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px }
+  .s4-flow-num { font-family:var(--mono);font-size:11px;color:var(--text-tertiary);flex-shrink:0;margin-top:2px;width:20px }
+  .s4-flow-content { flex:1 }
+  .s4-flow-title { font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px }
+  .s4-flow-steps { font-size:12px;color:var(--text-secondary);line-height:1.55 }
+
+  /* Step 4 question row */
+  .s4-q-row { display:flex;align-items:flex-start;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px }
+  .s4-q-type { font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;flex-shrink:0;margin-top:2px }
+  .s4-q-type.task { background:#f0faf4;color:#2d7a50;border:1px solid #b8e4c8 }
+  .s4-q-type.probe { background:#e8f0ff;color:#3050b0;border:1px solid #c8d8ff }
+  .s4-q-type.rating { background:#fef3c0;color:#92580a;border:1px solid #fcd34d }
+  .s4-q-text { flex:1;font-size:13px;color:var(--text);background:transparent;border:none;outline:none;resize:none;line-height:1.55;font-family:var(--sans);width:100% }
+
+  /* Step 4 iteration item */
+  .s4-iter-item { display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px }
+  .s4-iter-item.carry { border-color:#4a9d6f;background:#f0faf4 }
+  .s4-iter-priority { font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;flex-shrink:0;margin-top:2px }
+  .s4-iter-priority.p1 { background:#fee2e2;color:#9b1c1c;border:1px solid #fca5a5 }
+  .s4-iter-priority.p2 { background:#fef3c0;color:#92580a;border:1px solid #fcd34d }
+  .s4-iter-priority.p3 { background:var(--surface2);color:var(--text-tertiary);border:1px solid var(--border) }
+  .s4-carry-toggle { width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;flex-shrink:0;margin-top:2px;transition:all 0.15s;background:none }
+  .s4-carry-toggle.on { background:#4a9d6f;border-color:#4a9d6f;color:white }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">PM/Flow</div>
+    <div class="topbar-divider"></div>
+    <div class="project-name">New product initiative</div>
+  </div>
+  <div class="topbar-right">
+    <button class="topbar-btn">Share</button>
+    <button class="topbar-btn">Export</button>
+    <div class="avatar">PM</div>
+  </div>
+</div>
+
+<div class="step-nav">
+  <div class="step-tab active" onclick="setStep(0)"><div class="step-circle" id="circle-0">1</div><span class="step-tab-label">Inbound</span></div>
+  <div class="step-connector">›</div>
+  <div class="step-tab" onclick="setStep(1)"><div class="step-circle" id="circle-1">2</div><span class="step-tab-label">Competitor analysis</span></div>
+  <div class="step-connector">›</div>
+  <div class="step-tab" onclick="setStep(2)"><div class="step-circle" id="circle-2">3</div><span class="step-tab-label">Product design</span></div>
+  <div class="step-connector">›</div>
+  <div class="step-tab" onclick="setStep(3)"><div class="step-circle" id="circle-3">4</div><span class="step-tab-label">Prototype</span></div>
+  <div class="step-connector">›</div>
+  <div class="step-tab" onclick="setStep(4)"><div class="step-circle" id="circle-4">5</div><span class="step-tab-label">GTM</span></div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-label">Current step</div>
+      <div class="sidebar-step-num" id="sidebar-num">Step 1 of 5</div>
+      <div class="sidebar-step-title" id="sidebar-title">Inbound understanding</div>
+      <div class="sidebar-desc" id="sidebar-desc">Capture incoming insights, run scheduled analysis, and synthesise into problem statements, target segments, and success metrics.</div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="io-section">
+      <div class="sidebar-label">Inputs</div>
+      <div class="io-list" id="sidebar-inputs"></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="io-section">
+      <div class="sidebar-label">Outputs</div>
+      <div class="io-list" id="sidebar-outputs"></div>
+    </div>
+    <div class="sidebar-progress">
+      <div class="progress-text"><span>Progress</span><span id="progress-label">1 / 5</span></div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:20%"></div></div>
+    </div>
+  </aside>
+
+  <div class="content-wrap">
+
+    <!-- STEP 1 -->
+    <div class="step-panel active" id="panel-0">
+      <div class="content">
+
+        <div class="content-header">
+          <div class="content-eyebrow">Step 01 · Inbound understanding</div>
+          <div class="content-title">What insights are you capturing?</div>
+          <div class="content-sub">Capture customer feedback, support tickets, stakeholder requests, and market trends. Run a weekly digest automatically, or ask questions directly to understand your inbound.</div>
+        </div>
+
+        <!-- METRICS -->
+        <div class="card-row" style="grid-template-columns:repeat(4,1fr)">
+          <div class="metric-card">
+            <div class="metric-label">Insights</div>
+            <div class="metric-value" id="m-insights">4</div>
+            <div class="metric-sub">Captured</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Sources</div>
+            <div class="metric-value" id="m-sources">3</div>
+            <div class="metric-sub">Distinct</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Problems found</div>
+            <div class="metric-value" id="m-problems">3</div>
+            <div class="metric-sub">Synthesised</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Next run</div>
+            <div class="metric-value" style="font-size:16px" id="m-next-run">Mon</div>
+            <div class="metric-sub" id="m-next-run-sub">Weekly · 9:00 AM</div>
+          </div>
+        </div>
+
+        <!-- SCHEDULE BANNER -->
+        <div class="schedule-banner">
+          <div class="schedule-banner-left">
+            <span style="font-size:16px">🔄</span>
+            <div>
+              <div class="schedule-text"><strong>Weekly digest</strong> — refreshes every Monday at 9:00 AM</div>
+              <div class="schedule-meta" id="sched-meta">Last run: Today at 9:02 AM · 4 new insights · <span style="color:#4a9d6f">↑ 2 from last week</span></div>
+            </div>
+          </div>
+          <div class="schedule-btns">
+            <button class="schedule-btn" onclick="openScheduleModal()">Edit schedule</button>
+            <button class="schedule-btn run" id="run-btn" onclick="runNow()">▶ Run now</button>
+          </div>
+        </div>
+
+        <!-- INNER TABS -->
+        <div class="inner-tabs">
+          <button class="inner-tab active" onclick="showTab('insights')">Insights</button>
+          <button class="inner-tab" onclick="showTab('outputs')">Outputs</button>
+          <button class="inner-tab" onclick="showTab('schedule')">Schedule & history</button>
+          <button class="inner-tab" onclick="showTab('ask')">Ask inbound ✦</button>
+        </div>
+
+        <!-- TAB: INSIGHTS -->
+        <div class="tab-panel active" id="tab-insights">
+          <div class="workspace" style="margin-top:1rem">
+            <div class="workspace-header">
+              <div class="workspace-title">Inbound insights</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select class="ws-select" id="filter-type" onchange="renderInsights()">
+                  <option value="all">All types</option>
+                  <option value="Ticket">Ticket</option>
+                  <option value="Request">Request</option>
+                  <option value="Market trend">Market trend</option>
+                  <option value="Feedback">Feedback</option>
+                </select>
+                <button class="ws-btn ws-btn-primary" onclick="openAddModal()">+ Add insight</button>
+              </div>
+            </div>
+            <div id="insight-list-wrap"></div>
+          </div>
+
+        </div>
+
+        <!-- TAB: OUTPUTS -->
+        <div class="tab-panel" id="tab-outputs">
+          <div style="margin-top:1rem">
+
+            <!-- header row -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div>
+                <div style="font-size:15px;font-weight:500;color:var(--text)">Problem statements</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">3 problems synthesised from your inbound insights. Select one to carry into competitor analysis.</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="ws-btn ws-btn-primary" onclick="generateAllProblems()">✦ Re-generate all</button>
+                <button class="ws-btn" onclick="addProblemCard()">+ Add problem</button>
+              </div>
+            </div>
+
+            <!-- SELECTION BANNER (hidden until selection made) -->
+            <div id="selection-banner" style="display:none;background:#f0faf4;border:1px solid #b8e4c8;border-radius:8px;padding:0.85rem 1.1rem;margin-bottom:1rem;display:none;align-items:center;justify-content:space-between;gap:12px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:16px">✓</span>
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:#1a4a2e" id="banner-title">Problem selected</div>
+                  <div style="font-size:12px;color:#2d7a50;margin-top:1px" id="banner-sub">This will be carried into Step 2 — Competitor analysis</div>
+                </div>
+              </div>
+              <button class="btn primary" onclick="setStep(1)" style="background:#1a4a2e;border-color:#1a4a2e;white-space:nowrap">Continue to competitor analysis →</button>
+            </div>
+
+            <!-- PROBLEM CARDS -->
+            <div id="problem-cards-list">
+
+              <!-- CARD 1 -->
+              <div class="ps-card" id="ps-card-1">
+                <div class="ps-card-header">
+                  <div class="ps-card-left">
+                    <div class="ps-select-btn" id="ps-sel-1" onclick="selectProblem(1)" title="Select this problem">
+                      <div class="ps-select-ring"></div>
+                    </div>
+                    <span class="ps-rank">#1</span>
+                    <div class="ps-title">Bulk data export is missing</div>
+                  </div>
+                  <div class="ps-card-right">
+                    <div class="ps-score-pill" id="ps-score-1" style="background:#fee2e2">
+                      <span class="ps-score-num" id="ps-score-num-1" style="color:#9b1c1c">82</span>
+                      <span class="ps-score-label" id="ps-score-lbl-1" style="color:#9b1c1c">Critical</span>
+                    </div>
+                    <button class="ws-btn" onclick="toggleCard(1)" id="ps-toggle-1">Expand</button>
+                    <button class="ws-btn" onclick="regenCard(1)" title="Regenerate">✦</button>
+                    <button class="ins-del" onclick="removeCard(1)" style="font-size:15px">×</button>
+                  </div>
+                </div>
+                <div class="ps-card-body" id="ps-body-1">
+                  <div class="ps-section">
+                    <div class="ps-section-label">Problem statement</div>
+                    <textarea class="field-input ps-textarea" id="ps-stmt-1" rows="3">Enterprise and power users cannot export data in bulk, forcing manual one-at-a-time exports. This blocks enterprise sales deals, drives detractor NPS scores, and creates avoidable support load — all pointing to a critical capability gap.</textarea>
+                  </div>
+                  <div class="ps-two-col">
+                    <div class="ps-section">
+                      <div class="ps-section-label">Target audience segment</div>
+                      <div class="ps-segment-cards" id="ps-segs-1">
+                        <div class="ps-seg-tag">Enterprise accounts <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span></div>
+                        <div class="ps-seg-tag">Power users (100+ records) <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span></div>
+                      </div>
+                      <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addSegment(1)">+ Add segment</button>
+                    </div>
+                    <div class="ps-section">
+                      <div class="ps-section-label">Priority score</div>
+                      <div class="ps-score-breakdown" id="ps-score-breakdown-1">
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Customer impact</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:90%"></div></div><input type="range" min="1" max="10" value="9" class="ps-mini-slider" oninput="updatePsScore(1,'customer',this.value)"><span class="ps-mini-val" id="ps-c-1">9</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Revenue potential</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:80%"></div></div><input type="range" min="1" max="10" value="8" class="ps-mini-slider" oninput="updatePsScore(1,'revenue',this.value)"><span class="ps-mini-val" id="ps-r-1">8</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Strategic fit</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:80%"></div></div><input type="range" min="1" max="10" value="8" class="ps-mini-slider" oninput="updatePsScore(1,'strategic',this.value)"><span class="ps-mini-val" id="ps-s-1">8</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Insight volume</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:70%"></div></div><input type="range" min="1" max="10" value="7" class="ps-mini-slider" oninput="updatePsScore(1,'volume',this.value)"><span class="ps-mini-val" id="ps-v-1">7</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ps-section" style="margin-top:0">
+                    <div class="ps-section-label">Success metrics <span style="font-weight:400;color:var(--text-tertiary)">— how do we know when this is solved?</span></div>
+                    <div class="ps-metrics-list" id="ps-metrics-1">
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Bulk export adoption among enterprise accounts"><input type="text" class="field-input ps-metric-target" value="≥ 60% in 90 days" style="width:160px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Support tickets related to export"><input type="text" class="field-input ps-metric-target" value="↓ 40% in 60 days" style="width:160px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Enterprise deal conversion rate"><input type="text" class="field-input ps-metric-target" value="↑ 15% in 1 quarter" style="width:160px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                    </div>
+                    <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addMetricRow(1)">+ Add metric</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CARD 2 -->
+              <div class="ps-card" id="ps-card-2">
+                <div class="ps-card-header">
+                  <div class="ps-card-left">
+                    <div class="ps-select-btn" id="ps-sel-2" onclick="selectProblem(2)" title="Select this problem">
+                      <div class="ps-select-ring"></div>
+                    </div>
+                    <span class="ps-rank">#2</span>
+                    <div class="ps-title">Competitor feature parity gap</div>
+                  </div>
+                  <div class="ps-card-right">
+                    <div class="ps-score-pill" id="ps-score-2" style="background:#e8f0ff">
+                      <span class="ps-score-num" id="ps-score-num-2" style="color:#3050b0">61</span>
+                      <span class="ps-score-label" id="ps-score-lbl-2" style="color:#3050b0">Medium</span>
+                    </div>
+                    <button class="ws-btn" onclick="toggleCard(2)" id="ps-toggle-2">Expand</button>
+                    <button class="ws-btn" onclick="regenCard(2)" title="Regenerate">✦</button>
+                    <button class="ins-del" onclick="removeCard(2)" style="font-size:15px">×</button>
+                  </div>
+                </div>
+                <div class="ps-card-body" id="ps-body-2" style="display:none">
+                  <div class="ps-section">
+                    <div class="ps-section-label">Problem statement</div>
+                    <textarea class="field-input ps-textarea" id="ps-stmt-2" rows="3">Two competitors launched bulk export in Q1 2025. Prospects are actively comparing during evaluations and citing this gap as a reason to choose alternatives. Without parity, we risk losing deals at the feature-checklist stage.</textarea>
+                  </div>
+                  <div class="ps-two-col">
+                    <div class="ps-section">
+                      <div class="ps-section-label">Target audience segment</div>
+                      <div class="ps-segment-cards" id="ps-segs-2">
+                        <div class="ps-seg-tag">Enterprise evaluators <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span></div>
+                        <div class="ps-seg-tag">Sales team <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span></div>
+                      </div>
+                      <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addSegment(2)">+ Add segment</button>
+                    </div>
+                    <div class="ps-section">
+                      <div class="ps-section-label">Priority score</div>
+                      <div class="ps-score-breakdown" id="ps-score-breakdown-2">
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Customer impact</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:60%"></div></div><input type="range" min="1" max="10" value="6" class="ps-mini-slider" oninput="updatePsScore(2,'customer',this.value)"><span class="ps-mini-val" id="ps-c-2">6</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Revenue potential</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:70%"></div></div><input type="range" min="1" max="10" value="7" class="ps-mini-slider" oninput="updatePsScore(2,'revenue',this.value)"><span class="ps-mini-val" id="ps-r-2">7</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Strategic fit</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:50%"></div></div><input type="range" min="1" max="10" value="5" class="ps-mini-slider" oninput="updatePsScore(2,'strategic',this.value)"><span class="ps-mini-val" id="ps-s-2">5</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Insight volume</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:60%"></div></div><input type="range" min="1" max="10" value="6" class="ps-mini-slider" oninput="updatePsScore(2,'volume',this.value)"><span class="ps-mini-val" id="ps-v-2">6</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ps-section" style="margin-top:0">
+                    <div class="ps-section-label">Success metrics <span style="font-weight:400;color:var(--text-tertiary)">— how do we know when this is solved?</span></div>
+                    <div class="ps-metrics-list" id="ps-metrics-2">
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Feature parity score vs top 2 competitors"><input type="text" class="field-input ps-metric-target" value="100% on core features" style="width:180px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Loss rate citing export gap"><input type="text" class="field-input ps-metric-target" value="↓ to 0 in 60 days" style="width:180px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                    </div>
+                    <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addMetricRow(2)">+ Add metric</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CARD 3 -->
+              <div class="ps-card" id="ps-card-3">
+                <div class="ps-card-header">
+                  <div class="ps-card-left">
+                    <div class="ps-select-btn" id="ps-sel-3" onclick="selectProblem(3)" title="Select this problem">
+                      <div class="ps-select-ring"></div>
+                    </div>
+                    <span class="ps-rank">#3</span>
+                    <div class="ps-title">Power user churn from workflow friction</div>
+                  </div>
+                  <div class="ps-card-right">
+                    <div class="ps-score-pill" id="ps-score-3" style="background:#fef3c0">
+                      <span class="ps-score-num" id="ps-score-num-3" style="color:#92580a">55</span>
+                      <span class="ps-score-label" id="ps-score-lbl-3" style="color:#92580a">High</span>
+                    </div>
+                    <button class="ws-btn" onclick="toggleCard(3)" id="ps-toggle-3">Expand</button>
+                    <button class="ws-btn" onclick="regenCard(3)" title="Regenerate">✦</button>
+                    <button class="ins-del" onclick="removeCard(3)" style="font-size:15px">×</button>
+                  </div>
+                </div>
+                <div class="ps-card-body" id="ps-body-3" style="display:none">
+                  <div class="ps-section">
+                    <div class="ps-section-label">Problem statement</div>
+                    <textarea class="field-input ps-textarea" id="ps-stmt-3" rows="3">Power users managing large datasets are spending hours on repetitive manual exports, creating compounding workflow friction. This is surfacing as NPS detractor scores and silent churn among the highest-value, highest-engagement user cohort.</textarea>
+                  </div>
+                  <div class="ps-two-col">
+                    <div class="ps-section">
+                      <div class="ps-section-label">Target audience segment</div>
+                      <div class="ps-segment-cards" id="ps-segs-3">
+                        <div class="ps-seg-tag">Power users (SMB) <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span></div>
+                        <div class="ps-seg-tag">High-engagement accounts <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span></div>
+                      </div>
+                      <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addSegment(3)">+ Add segment</button>
+                    </div>
+                    <div class="ps-section">
+                      <div class="ps-section-label">Priority score</div>
+                      <div class="ps-score-breakdown" id="ps-score-breakdown-3">
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Customer impact</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:70%"></div></div><input type="range" min="1" max="10" value="7" class="ps-mini-slider" oninput="updatePsScore(3,'customer',this.value)"><span class="ps-mini-val" id="ps-c-3">7</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Revenue potential</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:50%"></div></div><input type="range" min="1" max="10" value="5" class="ps-mini-slider" oninput="updatePsScore(3,'revenue',this.value)"><span class="ps-mini-val" id="ps-r-3">5</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Strategic fit</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:50%"></div></div><input type="range" min="1" max="10" value="5" class="ps-mini-slider" oninput="updatePsScore(3,'strategic',this.value)"><span class="ps-mini-val" id="ps-s-3">5</span></div>
+                        <div class="ps-score-mini-row"><span class="ps-mini-label">Insight volume</span><div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:60%"></div></div><input type="range" min="1" max="10" value="6" class="ps-mini-slider" oninput="updatePsScore(3,'volume',this.value)"><span class="ps-mini-val" id="ps-v-3">6</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ps-section" style="margin-top:0">
+                    <div class="ps-section-label">Success metrics <span style="font-weight:400;color:var(--text-tertiary)">— how do we know when this is solved?</span></div>
+                    <div class="ps-metrics-list" id="ps-metrics-3">
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="NPS score among power users"><input type="text" class="field-input ps-metric-target" value="↑ 8 points in 90 days" style="width:180px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Churn rate in power user cohort"><input type="text" class="field-input ps-metric-target" value="↓ 20% in 2 quarters" style="width:180px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                      <div class="ps-metric-row"><input type="text" class="field-input ps-metric-name" value="Weekly active export usage"><input type="text" class="field-input ps-metric-target" value="↑ 3× within 60 days" style="width:180px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button></div>
+                    </div>
+                    <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addMetricRow(3)">+ Add metric</button>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /problem-cards-list -->
+          </div>
+        </div>
+
+        <!-- TAB: SCHEDULE & HISTORY -->
+        <div class="tab-panel" id="tab-schedule">
+          <div style="margin-top:1rem">
+            <div class="workspace">
+              <div class="workspace-header">
+                <div class="workspace-title">Schedule configuration</div>
+                <button class="ws-btn" onclick="openScheduleModal()">Edit</button>
+              </div>
+              <div class="workspace-body">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+                  <div><div class="field-label">Frequency</div><div style="font-size:14px;font-weight:500;margin-top:4px" id="cfg-freq">Weekly</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:2px" id="cfg-day">Every Monday</div></div>
+                  <div><div class="field-label">Time</div><div style="font-size:14px;font-weight:500;margin-top:4px" id="cfg-time">9:00 AM</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">Your timezone</div></div>
+                  <div>
+                    <div class="field-label">Sources included</div>
+                    <div class="tag-row" style="margin-top:4px">
+                      <span class="tag" style="font-size:11px;padding:3px 8px">Support tickets</span>
+                      <span class="tag" style="font-size:11px;padding:3px 8px">Feedback</span>
+                      <span class="tag" style="font-size:11px;padding:3px 8px">Requests</span>
+                      <span class="tag" style="font-size:11px;padding:3px 8px">Market trends</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="workspace">
+              <div class="workspace-header">
+                <div class="workspace-title">Run history</div>
+                <div style="font-family:var(--mono);font-size:11px;color:var(--text-tertiary)">Last 4 runs</div>
+              </div>
+              <div class="workspace-body">
+                <div class="run-log">
+                  <div class="run-row"><div class="run-dot success"></div><div><div class="run-title">Weekly digest — Mon Mar 30, 2026</div><div class="run-meta">4 insights found · 2 new · 14 sources scanned · 1.2s</div></div><span class="run-badge">Completed</span></div>
+                  <div class="run-row"><div class="run-dot success"></div><div><div class="run-title">Weekly digest — Mon Mar 23, 2026</div><div class="run-meta">2 insights found · 0 new · 14 sources scanned · 0.9s</div></div><span class="run-badge">Completed</span></div>
+                  <div class="run-row"><div class="run-dot success"></div><div><div class="run-title">Weekly digest — Mon Mar 16, 2026</div><div class="run-meta">6 insights found · 3 new · 14 sources scanned · 1.1s</div></div><span class="run-badge">Completed</span></div>
+                  <div class="run-row"><div class="run-dot scheduled"></div><div><div class="run-title">Weekly digest — Mon Apr 6, 2026</div><div class="run-meta">Scheduled · Will scan all connected sources</div></div><span class="run-badge" style="color:var(--text-tertiary)">Upcoming</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: ASK INBOUND -->
+        <div class="tab-panel" id="tab-ask">
+          <div style="margin-top:1rem">
+            <div class="workspace" style="overflow:hidden">
+              <div class="workspace-header">
+                <div class="workspace-title">Ask inbound <span class="ai-badge">✦ AI</span></div>
+                <div style="font-size:12px;color:var(--text-tertiary)">Powered by your captured insights</div>
+              </div>
+              <div class="chat-wrap">
+                <div class="chat-messages" id="chat-messages">
+                  <div class="chat-msg ai">
+                    <div class="chat-avatar ai">✦</div>
+                    <div class="chat-bubble">Hi! I've analysed your <strong>4 inbound insights</strong> across 3 sources. Ask me anything — segment feedback, insight patterns, urgency questions, or what to focus on next.</div>
+                  </div>
+                </div>
+                <div class="chat-suggestions" id="chat-sugs">
+                  <button class="chat-sug" onclick="useSug(this)">What are the top 3 pain points from enterprise users?</button>
+                  <button class="chat-sug" onclick="useSug(this)">Which insight has the highest urgency?</button>
+                  <button class="chat-sug" onclick="useSug(this)">Summarise all feedback insights</button>
+                  <button class="chat-sug" onclick="useSug(this)">What are market trends telling us?</button>
+                  <button class="chat-sug" onclick="useSug(this)">Which segment is most affected?</button>
+                </div>
+                <div class="chat-input-row">
+                  <textarea class="chat-input" id="chat-input" placeholder='Ask something like: "Help me understand the enterprise segment\'s top 3 feedback"' rows="1" onkeydown="handleChatKey(event)"></textarea>
+                  <button class="chat-send" onclick="sendChat()">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><path d="M1.5 1.5L14.5 8L1.5 14.5V9.5L10.5 8L1.5 6.5V1.5Z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+
+      <div class="action-bar">
+        <div class="action-hint" id="action-hint-text">Go to Outputs tab and select a problem statement to continue</div>
+        <div class="action-btns">
+          <button class="btn" id="btn-prev-tab" onclick="prevTab()" style="display:none">← Previous</button>
+          <button class="btn" id="btn-next-tab" onclick="nextTab()">Next: Outputs →</button>
+          <button class="btn primary" id="btn-continue" onclick="setStep(1)" disabled style="opacity:0.4;cursor:not-allowed">Select a problem to continue →</button>
+        </div>
+      </div>
+    </div><!-- /panel-0 -->
+
+    <!-- STEP 2: COMPETITOR ANALYSIS -->
+    <div class="step-panel" id="panel-1">
+      <div class="content" style="max-width:920px">
+
+        <div class="content-header">
+          <div class="content-eyebrow">Step 02 · Competitor analysis</div>
+          <div class="content-title">Who else is solving this?</div>
+          <div class="content-sub">Review the problem you're taking into this step, map the competitive landscape, then confirm the features to carry into product design.</div>
+        </div>
+
+        <div class="inner-tabs" id="s2-tabs">
+          <button class="inner-tab active"  onclick="s2Show('brief')">Problem brief</button>
+          <button class="inner-tab"         onclick="s2Show('competitors')">Competitors</button>
+          <button class="inner-tab"         onclick="s2Show('analysis')">Feature analysis</button>
+          <button class="inner-tab"         onclick="s2Show('recommend')">Recommended features</button>
+        </div>
+
+        <!-- ── TAB 1: PROBLEM BRIEF ── -->
+        <div class="s2-panel active" id="s2-brief">
+          <div style="margin-top:1rem">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem">This is the problem you selected in Step 1. Review it before proceeding — you can edit any field here if the framing needs refinement for competitive analysis.</div>
+
+            <div class="workspace">
+              <div class="workspace-header">
+                <div class="workspace-title">Selected problem statement</div>
+                <span id="s2-score-badge" class="s2-priority-pill"></span>
+              </div>
+              <div class="workspace-body" style="display:flex;flex-direction:column;gap:1rem">
+                <div>
+                  <div class="field-label" style="margin-bottom:6px">Statement</div>
+                  <textarea class="field-input" id="s2-stmt" rows="3" style="line-height:1.6"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+                  <div>
+                    <div class="field-label" style="margin-bottom:6px">Target audience segment</div>
+                    <div id="s2-segs" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+                  </div>
+                  <div>
+                    <div class="field-label" style="margin-bottom:6px">Success metrics</div>
+                    <div id="s2-metrics" style="display:flex;flex-direction:column;gap:5px"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn primary" onclick="s2Show('competitors')">Confirmed — add competitors →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 2: COMPETITORS ── -->
+        <div class="s2-panel" id="s2-competitors">
+          <div style="margin-top:1rem">
+
+            <div class="s2-ai-banner" id="s2-ai-banner">
+              <div style="display:flex;align-items:flex-start;gap:10px;flex:1">
+                <span class="ai-badge" style="flex-shrink:0;margin-top:1px">✦ Suggested</span>
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px">Competitors commonly compared in this space</div>
+                  <div id="s2-chips" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+                </div>
+              </div>
+              <button class="ins-del" style="font-size:18px;flex-shrink:0;align-self:flex-start" onclick="document.getElementById('s2-ai-banner').style.display='none'">×</button>
+            </div>
+
+            <div id="s2-comp-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:1rem"></div>
+
+            <div class="workspace">
+              <div class="workspace-header"><div class="workspace-title">Add a competitor manually</div></div>
+              <div class="workspace-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
+                  <div>
+                    <div class="field-label" style="margin-bottom:5px">Competitor name</div>
+                    <input type="text" class="field-input" id="s2-cname" placeholder="e.g. Salesforce">
+                  </div>
+                  <div>
+                    <div class="field-label" style="margin-bottom:5px">Product / feature</div>
+                    <input type="text" class="field-input" id="s2-cproduct" placeholder="e.g. Reports & Data Export" onkeydown="if(event.key==='Enter') s2AddComp()">
+                  </div>
+                  <button class="ws-btn ws-btn-primary" onclick="s2AddComp()" style="height:36px">+ Add</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn primary" onclick="s2Show('analysis');s2RunAnalysis()">Run feature analysis →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 3: FEATURE ANALYSIS ── -->
+        <div class="s2-panel" id="s2-analysis">
+          <div style="margin-top:1rem">
+
+            <div id="s2-analysis-loader" style="display:none;text-align:center;padding:3rem">
+              <div class="s2-dots"><span></span><span></span><span></span></div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-top:10px">Analysing competitors…</div>
+            </div>
+
+            <div id="s2-analysis-body">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                <div style="font-size:13px;color:var(--text-secondary)">Feature-by-feature comparison. Add your own context or corrections in the feedback box below.</div>
+                <button class="ws-btn ws-btn-primary" onclick="s2RunAnalysis()">✦ Re-analyse</button>
+              </div>
+
+              <div class="workspace" style="overflow:visible">
+                <div class="workspace-header">
+                  <div class="workspace-title">Feature comparison</div>
+                  <div id="s2-comp-count" style="font-family:var(--mono);font-size:11px;color:var(--text-tertiary)">— competitors</div>
+                </div>
+                <div style="overflow-x:auto">
+                  <table class="s2-table" id="s2-feat-table">
+                    <thead id="s2-thead"></thead>
+                    <tbody id="s2-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="workspace">
+                <div class="workspace-header">
+                  <div class="workspace-title">PM feedback &amp; corrections</div>
+                  <div style="font-size:12px;color:var(--text-tertiary)">Refines the recommendations</div>
+                </div>
+                <div class="workspace-body">
+                  <div id="s2-fb-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+                  <div style="display:flex;gap:8px;align-items:flex-end">
+                    <textarea class="field-input" id="s2-fb-input" rows="2" placeholder='e.g. "Airtable's export breaks on 10k+ rows" or "Our users specifically need scheduled exports"' style="flex:1;min-height:60px"></textarea>
+                    <button class="ws-btn ws-btn-primary" onclick="s2AddFeedback()" style="align-self:flex-end;height:36px">Add</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:flex-end">
+                <button class="btn primary" onclick="s2Show('recommend');s2BuildRecs()">Generate recommendations →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 4: RECOMMENDED FEATURES ── -->
+        <div class="s2-panel" id="s2-recommend">
+          <div style="margin-top:1rem">
+
+            <div id="s2-rec-loader" style="display:none;text-align:center;padding:3rem">
+              <div class="s2-dots"><span></span><span></span><span></span></div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-top:10px">Building recommendations…</div>
+            </div>
+
+            <div id="s2-rec-body">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                <div>
+                  <div style="font-size:15px;font-weight:500;color:var(--text)">Recommended features</div>
+                  <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Select features to carry into Step 3 — Product design. Must-have features are pre-selected.</div>
+                </div>
+                <button class="ws-btn ws-btn-primary" onclick="s2BuildRecs()">✦ Re-generate</button>
+              </div>
+
+              <div id="s2-rec-list"></div>
+
+              <div class="workspace" style="margin-top:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Analysis summary &amp; notes</div>
+                  <div id="s2-sel-count" style="font-family:var(--mono);font-size:11px;color:var(--text-tertiary)">0 features selected</div>
+                </div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s2-notes" rows="3" placeholder="Add any notes, caveats, or context for the product design team…"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+
+      <div class="action-bar">
+        <div class="action-hint" id="s2-hint">Select features in the Recommended features tab to continue</div>
+        <div class="action-btns">
+          <button class="btn" onclick="setStep(0)">← Back to inbound</button>
+          <button class="btn primary" id="s2-continue" onclick="setStep(2)" disabled style="opacity:0.4;cursor:not-allowed">Select features to continue →</button>
+        </div>
+      </div>
+    </div><!-- /panel-1 -->
+    <!-- ═══════════════════════════════════════════════════════════
+         STEP 3 · PRODUCT DESIGN
+    ════════════════════════════════════════════════════════════ -->
+    <div class="step-panel" id="panel-2">
+      <div class="content" style="max-width:920px">
+
+        <div class="content-header">
+          <div class="content-eyebrow">Step 03 · Product design</div>
+          <div class="content-title">What exactly are we building?</div>
+          <div class="content-sub">Review the features from competitor analysis, write user stories per feature, define scope boundaries, then produce a design brief to hand to your designer.</div>
+        </div>
+
+        <div class="inner-tabs" id="s3-tabs">
+          <button class="inner-tab active" onclick="s3Show('brief')">Feature brief</button>
+          <button class="inner-tab"        onclick="s3Show('stories')">User stories</button>
+          <button class="inner-tab"        onclick="s3Show('scope')">Feature scope</button>
+          <button class="inner-tab"        onclick="s3Show('brief-out')">Design brief</button>
+        </div>
+
+        <!-- ── TAB 1: FEATURE BRIEF ── -->
+        <div class="s3-panel active" id="s3-brief">
+          <div style="margin-top:1rem">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem">These are the features confirmed in Step 2. Toggle any off if you're de-scoping for this sprint. You can also add PM notes that will carry into the design brief.</div>
+
+            <div class="workspace">
+              <div class="workspace-header">
+                <div class="workspace-title">Confirmed features <span class="out-num" id="s3-feat-count">3 selected</span></div>
+                <button class="ws-btn" onclick="s3AddFeature()">+ Add feature</button>
+              </div>
+              <div class="workspace-body" style="display:flex;flex-direction:column;gap:8px" id="s3-feat-list"></div>
+            </div>
+
+            <div class="workspace">
+              <div class="workspace-header">
+                <div class="workspace-title">PM context &amp; constraints</div>
+                <span class="ai-badge">✦ Optional</span>
+              </div>
+              <div class="workspace-body" style="display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <div class="field-label">Engineering constraints or context</div>
+                  <textarea class="field-input" id="s3-eng-constraints" rows="2" placeholder="e.g. Must reuse existing export pipeline. No new backend services this sprint.">Must reuse existing data pipeline. Backend API for bulk fetch already exists — frontend work only for v1.</textarea>
+                </div>
+                <div>
+                  <div class="field-label">Design principles for this feature set</div>
+                  <textarea class="field-input" id="s3-design-principles" rows="2" placeholder="e.g. Zero-configuration for basic use; power options behind progressive disclosure.">Zero configuration for the common case. Power options (column selection, format) behind a single settings panel.</textarea>
+                </div>
+                <div>
+                  <div class="field-label">PM notes &amp; open questions</div>
+                  <textarea class="field-input" id="s3-pm-notes" rows="2" placeholder="Anything the designer needs to know that isn't captured above…">Check with legal on whether we need an explicit data-scope confirmation step before bulk export triggers.</textarea>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn primary" onclick="s3Show('stories');s3GenerateStories()">Generate user stories →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 2: USER STORIES ── -->
+        <div class="s3-panel" id="s3-stories">
+          <div style="margin-top:1rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text-secondary)">User stories grouped by feature. Edit any story, delete irrelevant ones, or add your own. Stories you keep will anchor the feature scope and design brief.</div>
+              <button class="ws-btn ws-btn-primary" onclick="s3GenerateStories()">✦ Re-generate</button>
+            </div>
+            <div id="s3-stories-wrap"></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
+              <button class="btn primary" onclick="s3Show('scope')">Review feature scope →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 3: FEATURE SCOPE ── -->
+        <div class="s3-panel" id="s3-scope">
+          <div style="margin-top:1rem">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem">Define in/out of scope and acceptance criteria per feature. This becomes the contract between PM, design, and engineering.</div>
+            <div id="s3-scope-wrap"></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
+              <button class="btn primary" onclick="s3Show('brief-out');s3BuildBrief()">Generate design brief →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 4: DESIGN BRIEF ── -->
+        <div class="s3-panel" id="s3-brief-out">
+          <div style="margin-top:1rem">
+            <div id="s3-brief-loader" style="display:none;padding:2rem;text-align:center">
+              <div class="s2-dots"><span></span><span></span><span></span></div>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Compiling design brief…</div>
+            </div>
+            <div id="s3-brief-body">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                <div style="font-size:13px;color:var(--text-secondary)">AI-compiled from your feature brief, user stories, and scope decisions. Edit any section directly before handing off to design.</div>
+                <button class="ws-btn ws-btn-primary" onclick="s3BuildBrief()">✦ Re-generate</button>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">Problem &amp; goal</div></div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s3-db-goal" rows="3" style="line-height:1.65"></textarea>
+                </div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">Target users</div></div>
+                <div class="workspace-body" id="s3-db-users"></div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Features &amp; acceptance criteria</div>
+                  <span style="font-family:var(--mono);font-size:11px;color:var(--text-tertiary)" id="s3-db-feat-count"></span>
+                </div>
+                <div class="workspace-body" id="s3-db-feats"></div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">Success metrics</div></div>
+                <div class="workspace-body" id="s3-db-metrics"></div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">Constraints &amp; design principles</div></div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s3-db-constraints" rows="3" style="line-height:1.65"></textarea>
+                </div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">PM notes &amp; open questions</div><span class="ai-badge">PM added</span></div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s3-db-pmnotes" rows="2" style="line-height:1.65"></textarea>
+                </div>
+              </div>
+
+              <!-- Stories to carry into prototype -->
+              <div class="workspace" style="margin-bottom:1.5rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">User stories to prototype</div>
+                  <div style="font-family:var(--mono);font-size:11px;color:var(--text-tertiary)" id="s3-proto-count">0 selected</div>
+                </div>
+                <div class="workspace-body">
+                  <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Select the stories that the prototype must cover. These will frame the test flows in Step 4.</div>
+                  <div id="s3-proto-stories"></div>
+                </div>
+              </div>
+
+            </div><!-- /s3-brief-body -->
+          </div>
+        </div>
+
+      </div><!-- /content -->
+
+      <div class="action-bar">
+        <div class="action-hint" id="s3-hint">Select user stories to prototype to continue</div>
+        <div class="action-btns">
+          <button class="btn" onclick="setStep(1)">← Back to competitor analysis</button>
+          <button class="btn primary" id="s3-continue" onclick="setStep(3)" disabled style="opacity:0.4;cursor:not-allowed">Select stories to continue →</button>
+        </div>
+      </div>
+    </div><!-- /panel-2 -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         STEP 4 · PROTOTYPE
+    ════════════════════════════════════════════════════════════ -->
+    <div class="step-panel" id="panel-3">
+      <div class="content" style="max-width:920px">
+
+        <div class="content-header">
+          <div class="content-eyebrow">Step 04 · Prototype</div>
+          <div class="content-title">Build the smallest testable version</div>
+          <div class="content-sub">Review what you're prototyping, define your test design, run a click-through prototype, then capture results and decide what to iterate.</div>
+        </div>
+
+        <div class="inner-tabs" id="s4-tabs">
+          <button class="inner-tab active" onclick="s4Show('brief')">Prototype brief</button>
+          <button class="inner-tab"        onclick="s4Show('plan')">Prototype plan</button>
+          <button class="inner-tab"        onclick="s4Show('test')">Test design</button>
+          <button class="inner-tab"        onclick="s4Show('results')">Results &amp; iteration</button>
+        </div>
+
+        <!-- ── TAB 1: PROTOTYPE BRIEF ── -->
+        <div class="s4-panel active" id="s4-brief">
+          <div style="margin-top:1rem">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1.25rem">These are the user stories confirmed for prototyping from Step 3. Review the scope, adjust if needed, then generate your prototype plan.</div>
+
+            <div class="workspace">
+              <div class="workspace-header">
+                <div class="workspace-title">Stories to prototype <span class="out-num" id="s4-story-count">0</span></div>
+              </div>
+              <div class="workspace-body" id="s4-stories-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+
+            <div class="workspace">
+              <div class="workspace-header"><div class="workspace-title">Prototype scope &amp; constraints</div></div>
+              <div class="workspace-body" style="display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <div class="field-label">What this prototype must demonstrate</div>
+                  <textarea class="field-input" id="s4-must-show" rows="2">The end-to-end bulk export flow: selecting records → choosing format → triggering export → receiving file. Must be realistic enough for enterprise users to give genuine reactions.</textarea>
+                </div>
+                <div>
+                  <div class="field-label">What is explicitly out of scope for this prototype</div>
+                  <textarea class="field-input" id="s4-out-scope" rows="2">Actual file generation (use a dummy download). Scheduled export UI. Error states beyond "export failed" toast.</textarea>
+                </div>
+                <div>
+                  <div class="field-label">Who will test this prototype</div>
+                  <textarea class="field-input" id="s4-testers" rows="1">3–5 enterprise account managers + 2 power users (internal). Moderated sessions, 30 min each.</textarea>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn primary" onclick="s4Show('plan');s4GeneratePlan()">Generate prototype plan →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 2: PROTOTYPE PLAN ── -->
+        <div class="s4-panel" id="s4-plan">
+          <div style="margin-top:1rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text-secondary)">AI-generated prototype plan based on your stories and scope. Edit flows, add notes, then open the click-through prototype.</div>
+              <button class="ws-btn ws-btn-primary" onclick="s4GeneratePlan()">✦ Re-generate</button>
+            </div>
+
+            <div id="s4-plan-loader" style="display:none;padding:2rem;text-align:center">
+              <div class="s2-dots"><span></span><span></span><span></span></div>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Generating prototype plan…</div>
+            </div>
+            <div id="s4-plan-body">
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Fidelity &amp; tool</div>
+                </div>
+                <div class="workspace-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                  <div>
+                    <div class="field-label">Fidelity level</div>
+                    <select class="field-input ws-select" id="s4-fidelity" style="width:100%;height:36px;font-size:13px">
+                      <option selected>Mid-fidelity (greyscale wireframe)</option>
+                      <option>Low-fidelity (paper sketch)</option>
+                      <option>High-fidelity (pixel-perfect)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div class="field-label">Primary tool</div>
+                    <select class="field-input ws-select" id="s4-tool" style="width:100%;height:36px;font-size:13px">
+                      <option selected>In-browser (HTML/CSS)</option>
+                      <option>Figma</option>
+                      <option>Paper prototype</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">Flows to cover</div><button class="ws-btn" onclick="s4AddFlow()">+ Add flow</button></div>
+                <div class="workspace-body" style="display:flex;flex-direction:column;gap:8px" id="s4-flows-list"></div>
+              </div>
+
+              <!-- PROTOTYPE PREVIEW -->
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Click-through prototype <span class="ai-badge" style="margin-left:4px">Interactive</span></div>
+                  <button class="ws-btn ws-btn-primary" onclick="s4OpenProto()">▶ Open prototype</button>
+                </div>
+                <div class="workspace-body" style="text-align:center;padding:2rem;color:var(--text-tertiary)">
+                  <div style="font-size:32px;margin-bottom:8px">◎</div>
+                  <div style="font-size:13px;margin-bottom:4px;color:var(--text-secondary)">Click-through prototype ready</div>
+                  <div style="font-size:12px">Covers the 3 core flows. Opens in a modal — share the link or run it live in testing sessions.</div>
+                </div>
+              </div>
+
+            </div><!-- /s4-plan-body -->
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn primary" onclick="s4Show('test');s4GenerateTests()">Design test questions →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 3: TEST DESIGN ── -->
+        <div class="s4-panel" id="s4-test">
+          <div style="margin-top:1rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text-secondary)">AI-generated test questions anchored to your user stories. Edit, reorder, or add your own before sessions begin.</div>
+              <button class="ws-btn ws-btn-primary" onclick="s4GenerateTests()">✦ Re-generate</button>
+            </div>
+
+            <div id="s4-test-loader" style="display:none;padding:2rem;text-align:center">
+              <div class="s2-dots"><span></span><span></span><span></span></div>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Generating test design…</div>
+            </div>
+            <div id="s4-test-body">
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Test objectives</div>
+                </div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s4-test-obj" rows="2">Validate that enterprise users can complete a bulk export without assistance. Identify friction in format selection and scope-setting steps. Measure time-on-task and confidence rating.</textarea>
+                </div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Test questions &amp; tasks <span class="out-num" id="s4-q-count">0 questions</span></div>
+                  <button class="ws-btn" onclick="s4AddQuestion()">+ Add question</button>
+                </div>
+                <div class="workspace-body" style="display:flex;flex-direction:column;gap:8px" id="s4-questions-list"></div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header"><div class="workspace-title">PM's additional observations to watch for</div></div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s4-pm-watch" rows="2" placeholder="What are you personally curious to observe that isn't captured above?">Watch for hesitation around the column-selection panel — if users skip it entirely, it suggests default settings are good enough and the panel may be over-engineered.</textarea>
+                </div>
+              </div>
+            </div><!-- /s4-test-body -->
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn primary" onclick="s4Show('results')">Capture test results →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 4: RESULTS & ITERATION ── -->
+        <div class="s4-panel" id="s4-results">
+          <div style="margin-top:1rem">
+
+            <div class="workspace" style="margin-bottom:1rem">
+              <div class="workspace-header"><div class="workspace-title">Test results</div><span class="ai-badge">PM fills in</span></div>
+              <div class="workspace-body" style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                  <div class="metric-card" style="text-align:center">
+                    <div class="metric-label">Sessions run</div>
+                    <input type="number" class="field-input" id="s4-sessions" value="5" style="font-size:22px;font-weight:500;text-align:center;border:none;background:none;padding:4px 0;width:100%" oninput="s4UpdateSynthBtn()">
+                  </div>
+                  <div class="metric-card" style="text-align:center">
+                    <div class="metric-label">Task completion</div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px">
+                      <input type="number" class="field-input" id="s4-completion" value="80" min="0" max="100" style="font-size:22px;font-weight:500;text-align:center;border:none;background:none;padding:4px 0;width:60px" oninput="s4UpdateSynthBtn()">
+                      <span style="font-size:16px;color:var(--text-secondary)">%</span>
+                    </div>
+                  </div>
+                  <div class="metric-card" style="text-align:center">
+                    <div class="metric-label">Avg confidence (1–5)</div>
+                    <input type="number" class="field-input" id="s4-confidence" value="3.8" min="1" max="5" step="0.1" style="font-size:22px;font-weight:500;text-align:center;border:none;background:none;padding:4px 0;width:100%" oninput="s4UpdateSynthBtn()">
+                  </div>
+                </div>
+                <div>
+                  <div class="field-label">What worked well</div>
+                  <textarea class="field-input" id="s4-worked" rows="2" placeholder="Observations from sessions…">One-click export trigger was immediately intuitive — all 5 users clicked it without prompting. The format dropdown was understood without explanation.</textarea>
+                </div>
+                <div>
+                  <div class="field-label">What caused friction or confusion</div>
+                  <textarea class="field-input" id="s4-friction" rows="2" placeholder="Where did users hesitate or fail?">3 of 5 users didn't realise the column-selection panel existed. 2 users expected a progress indicator during export — got anxious when nothing appeared.</textarea>
+                </div>
+                <div>
+                  <div class="field-label">PM's own observations</div>
+                  <textarea class="field-input" id="s4-pm-obs" rows="2" placeholder="What did you notice that wasn't in the questions?">Column-selection panel hypothesis confirmed — users skip it. Can ship v1 without it and revisit. Progress indicator is a quick win — add to v1 scope.</textarea>
+                </div>
+                <div style="display:flex;justify-content:flex-end">
+                  <button class="ws-btn ws-btn-primary" id="s4-synth-btn" onclick="s4Synthesise()">✦ Synthesise findings</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="s4-synth-loader" style="display:none;padding:1.5rem;text-align:center">
+              <div class="s2-dots"><span></span><span></span><span></span></div>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Synthesising test results…</div>
+            </div>
+
+            <div id="s4-synth-body" style="display:none">
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">AI synthesis</div>
+                  <span class="ai-badge">✦ Generated</span>
+                </div>
+                <div class="workspace-body">
+                  <textarea class="field-input" id="s4-synthesis-text" rows="5" style="line-height:1.65"></textarea>
+                </div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1rem">
+                <div class="workspace-header">
+                  <div class="workspace-title">Iteration items <span class="out-num" id="s4-iter-count">0 items</span></div>
+                  <button class="ws-btn" onclick="s4AddIterItem()">+ Add item</button>
+                </div>
+                <div class="workspace-body" style="display:flex;flex-direction:column;gap:8px" id="s4-iter-list"></div>
+              </div>
+
+              <div class="workspace" style="margin-bottom:1.5rem">
+                <div class="workspace-header"><div class="workspace-title">Decision: carry into Dev</div></div>
+                <div class="workspace-body">
+                  <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Which iteration items are you committing to before handing to engineering?</div>
+                  <div id="s4-carry-list"></div>
+                  <textarea class="field-input" id="s4-dev-notes" rows="2" style="margin-top:10px" placeholder="Any final notes for engineering…">Scope confirmed for v1. Column-selection deferred to v2. Progress indicator added to v1 scope.</textarea>
+                </div>
+              </div>
+            </div><!-- /s4-synth-body -->
+
+          </div>
+        </div>
+
+      </div><!-- /content -->
+
+      <div class="action-bar">
+        <div class="action-hint" id="s4-hint">Complete test results and synthesise findings to continue</div>
+        <div class="action-btns">
+          <button class="btn" onclick="setStep(2)">← Back to product design</button>
+          <button class="btn primary" id="s4-continue" onclick="setStep(4)" disabled style="opacity:0.4;cursor:not-allowed">Continue to GTM →</button>
+        </div>
+      </div>
+    </div><!-- /panel-3 -->
+
+    <!-- PROTOTYPE MODAL -->
+    <div class="modal-overlay" id="proto-modal" style="z-index:300">
+      <div class="modal" style="width:820px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column">
+        <div class="modal-header">
+          <div class="modal-title">Click-through prototype · Bulk data export</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--text-tertiary)" id="proto-flow-label">Flow 1 of 3</span>
+            <button class="modal-close" onclick="closeModal('proto-modal')">×</button>
+          </div>
+        </div>
+        <div style="flex:1;overflow:hidden;min-height:0">
+          <iframe id="proto-iframe" style="width:100%;height:560px;border:none;background:#f8f8f7" srcdoc=""></iframe>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between">
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="proto-prev" onclick="protoNav(-1)">← Prev flow</button>
+            <button class="btn" id="proto-next" onclick="protoNav(1)">Next flow →</button>
+          </div>
+          <button class="btn" onclick="closeModal('proto-modal')">Close</button>
+        </div>
+      </div>
+    </div>
+    <div class="step-panel" id="panel-4"><div class="content"><div class="content-header"><div class="content-eyebrow">Step 05 · GTM</div><div class="content-title">Go to market</div><div class="content-sub">Messaging, channels, pricing, and launch sequencing.</div></div><div class="empty-hint"><div class="empty-icon">◎</div>GTM workspace — coming next.</div></div><div class="action-bar"><div class="action-hint"></div><div class="action-btns"><button class="btn" onclick="setStep(3)">← Back</button><button class="btn primary" onclick="alert('Workflow complete! 🎉')">Finish workflow ✓</button></div></div></div>
+  </div>
+</div>
+
+<!-- ADD INSIGHT MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add insight</div><button class="modal-close" onclick="closeModal('add-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="field-group"><label class="field-label">Type</label><select class="field-input" id="new-type"><option>Ticket</option><option>Request</option><option>Market trend</option><option>Feedback</option></select></div>
+      <div class="field-group"><label class="field-label">Description</label><textarea class="field-input" id="new-text" rows="2" placeholder="Describe what you're hearing or seeing…"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="field-group" style="margin-bottom:0"><label class="field-label">Source</label><input type="text" class="field-input" id="new-source" placeholder="e.g. Support, Sales, NPS"></div>
+        <div class="field-group" style="margin-bottom:0"><label class="field-label">Urgency</label><select class="field-input" id="new-urgency"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('add-modal')">Cancel</button><button class="btn primary" onclick="saveInsight()">Add insight</button></div>
+  </div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div class="modal-overlay" id="schedule-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Edit schedule</div><button class="modal-close" onclick="closeModal('schedule-modal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+        <div class="field-group" style="margin-bottom:0"><label class="field-label">Frequency</label><select class="field-input" id="sched-freq"><option>Daily</option><option selected>Weekly</option><option>Bi-weekly</option><option>Monthly</option></select></div>
+        <div class="field-group" style="margin-bottom:0"><label class="field-label">Day</label><select class="field-input" id="sched-day"><option selected>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div>
+      </div>
+      <div class="field-group"><label class="field-label">Time</label><input type="time" class="field-input" value="09:00" id="sched-time"></div>
+      <div class="field-group" style="margin-bottom:0"><label class="field-label">Notify via</label>
+        <div style="display:flex;gap:12px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input type="checkbox" checked> Email</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input type="checkbox"> Slack</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input type="checkbox"> In-app</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeModal('schedule-modal')">Cancel</button><button class="btn primary" onclick="saveSchedule()">Save schedule</button></div>
+  </div>
+</div>
+
+<script>
+// ─── INSIGHTS ───────────────────────────────────
+let insights = [
+  { id:1, type:'Ticket',       text:"Users can't bulk-export data — hitting this weekly",          source:'Support',          urgency:'High' },
+  { id:2, type:'Request',      text:'Sales asking for CSV export before enterprise QBR',            source:'Internal',         urgency:'High' },
+  { id:3, type:'Market trend', text:'Two competitors launched bulk export in Q1 2025',              source:'Market research',  urgency:'Medium' },
+  { id:4, type:'Feedback',     text:'"I have to export one by one — this kills my workflow"',       source:'NPS survey',       urgency:'High' },
+];
+let nextId = 5;
+const typeColors = { 'Ticket':{bg:'#fff4e0',color:'#a06010'}, 'Request':{bg:'#e8f0ff',color:'#3050b0'}, 'Market trend':{bg:'#f0faf4',color:'#2d7a50'}, 'Feedback':{bg:'#fdf0f0',color:'#a03030'} };
+
+function renderInsights() {
+  const filter = document.getElementById('filter-type').value;
+  const list = filter === 'all' ? insights : insights.filter(s => s.type === filter);
+  const wrap = document.getElementById('insight-list-wrap');
+  if (!list.length) { wrap.innerHTML = '<div style="padding:2rem;text-align:center;font-size:13px;color:var(--text-tertiary)">No insights yet.</div>'; return; }
+  wrap.innerHTML = `<table class="insight-table"><thead><tr><th style="width:110px">Type</th><th>Insight</th><th style="width:130px">Source</th><th style="width:80px">Urgency</th><th style="width:36px"></th></tr></thead><tbody>
+  ${list.map(s => { const c = typeColors[s.type]||{bg:'#f4f4f3',color:'#4a4a47'}; return `<tr>
+    <td><span style="background:${c.bg};color:${c.color};font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap">${s.type}</span></td>
+    <td style="max-width:300px;line-height:1.5">${s.text}</td>
+    <td style="color:var(--text-secondary);font-size:12px">${s.source}</td>
+    <td><span style="font-size:11px;color:${s.urgency==='High'||s.urgency==='Critical'?'#a06010':'var(--text-tertiary)'}">${s.urgency}</span></td>
+    <td><button class="ins-del" onclick="deleteInsight(${s.id})">×</button></td>
+  </tr>`; }).join('')}</tbody></table>`;
+  updateMetrics();
+}
+function deleteInsight(id) { insights = insights.filter(s=>s.id!==id); renderInsights(); }
+function openAddModal() { document.getElementById('add-modal').classList.add('open'); setTimeout(()=>document.getElementById('new-text').focus(),50); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); if(id==='add-modal'){document.getElementById('new-text').value='';document.getElementById('new-source').value='';} }
+function saveInsight() {
+  const text = document.getElementById('new-text').value.trim();
+  if (!text) { document.getElementById('new-text').focus(); return; }
+  insights.push({id:nextId++,type:document.getElementById('new-type').value,text,source:document.getElementById('new-source').value||'—',urgency:document.getElementById('new-urgency').value});
+  closeModal('add-modal'); renderInsights();
+}
+document.getElementById('add-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('add-modal'); });
+document.getElementById('schedule-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal('schedule-modal'); });
+
+// ─── METRICS ───────────────────────────────────
+function updateMetrics() {
+  const count = insights.length, sources = new Set(insights.map(s=>s.source)).size;
+  document.getElementById('m-insights').textContent = count;
+  document.getElementById('m-sources').textContent = sources;
+}
+
+// ─── INNER TABS ────────────────────────────────
+const tabOrder = ['insights','outputs','schedule','ask'];
+let currentTab = 'insights';
+function showTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.inner-tab').forEach((t,i) => t.classList.toggle('active', tabOrder[i]===id));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='tab-'+id));
+  const idx = tabOrder.indexOf(id);
+  document.getElementById('btn-prev-tab').style.display = idx>0?'flex':'none';
+  const nb = document.getElementById('btn-next-tab');
+  nb.style.display = idx<tabOrder.length-1?'flex':'none';
+  nb.textContent = ['Next: Outputs →','Next: Schedule →','Next: Ask inbound →',''][idx];
+}
+function nextTab() { const i=tabOrder.indexOf(currentTab); if(i<tabOrder.length-1) showTab(tabOrder[i+1]); }
+function prevTab() { const i=tabOrder.indexOf(currentTab); if(i>0) showTab(tabOrder[i-1]); }
+
+// ─── OUTPUTS ──────────────────────────────────
+// Per-card score weights
+const psWeights = {
+  1: { customer:9, revenue:8, strategic:8, volume:7 },
+  2: { customer:6, revenue:7, strategic:5, volume:6 },
+  3: { customer:7, revenue:5, strategic:5, volume:6 },
+};
+
+let selectedProblem = null;
+
+function selectProblem(id) {
+  selectedProblem = selectedProblem === id ? null : id;
+
+  // Update all card states
+  const allCards = document.querySelectorAll('#problem-cards-list .ps-card');
+  allCards.forEach(card => {
+    const cardId = parseInt(card.id.replace('ps-card-', ''));
+    const selBtn = document.getElementById('ps-sel-' + cardId);
+    if (!selBtn) return;
+    if (selectedProblem === null) {
+      card.classList.remove('selected', 'dimmed');
+      selBtn.classList.remove('active');
+    } else if (cardId === selectedProblem) {
+      card.classList.add('selected');
+      card.classList.remove('dimmed');
+      selBtn.classList.add('active');
+      // auto-expand selected card
+      const body = document.getElementById('ps-body-' + cardId);
+      const toggle = document.getElementById('ps-toggle-' + cardId);
+      if (body && body.style.display === 'none') {
+        body.style.display = 'flex';
+        if (toggle) toggle.textContent = 'Collapse';
+      }
+    } else {
+      card.classList.remove('selected');
+      card.classList.add('dimmed');
+      selBtn.classList.remove('active');
+    }
+  });
+
+  // Update action bar
+  const continueBtn = document.getElementById('btn-continue');
+  const hintEl = document.getElementById('action-hint-text');
+  const banner = document.getElementById('selection-banner');
+
+  if (selectedProblem) {
+    // Get the title of selected card
+    const titleEl = document.querySelector(`#ps-card-${selectedProblem} .ps-title`);
+    const title = titleEl ? titleEl.textContent : 'Selected problem';
+
+    continueBtn.disabled = false;
+    continueBtn.style.opacity = '1';
+    continueBtn.style.cursor = 'pointer';
+    continueBtn.textContent = 'Continue to competitor analysis →';
+
+    hintEl.innerHTML = `<span style="color:#2d7a50;font-weight:500">✓ Selected:</span> ${title}`;
+
+    banner.style.display = 'flex';
+    document.getElementById('banner-title').textContent = `"${title}" selected`;
+    document.getElementById('banner-sub').textContent = 'This problem will frame Step 2 — Competitor analysis';
+  } else {
+    continueBtn.disabled = true;
+    continueBtn.style.opacity = '0.4';
+    continueBtn.style.cursor = 'not-allowed';
+    continueBtn.textContent = 'Select a problem to continue →';
+    hintEl.textContent = 'Go to Outputs tab and select a problem statement to continue';
+    banner.style.display = 'none';
+  }
+}
+
+function calcPsScore(id) {
+  const w = psWeights[id];
+  if (!w) return 50;
+  return Math.round((w.customer + w.revenue + w.strategic + w.volume) / 4 * 10);
+}
+
+const scoreStyle = {
+  Critical: { bg:'#fee2e2', color:'#9b1c1c' },
+  High:     { bg:'#fef3c0', color:'#92580a' },
+  Medium:   { bg:'#e8f0ff', color:'#3050b0' },
+  Low:      { bg:'#f4f4f3', color:'#6b6b68' },
+};
+
+function scoreLabel(n) {
+  return n >= 80 ? 'Critical' : n >= 65 ? 'High' : n >= 45 ? 'Medium' : 'Low';
+}
+
+function updatePsScore(id, key, val) {
+  if (!psWeights[id]) return;
+  psWeights[id][key] = parseInt(val);
+  // update mini bar
+  const barMap = { customer:'c', revenue:'r', strategic:'s', volume:'v' };
+  const barEl = document.querySelector(`#ps-score-breakdown-${id} .ps-score-mini-row:nth-child(${['customer','revenue','strategic','volume'].indexOf(key)+1}) .ps-mini-bar`);
+  if (barEl) barEl.style.width = (parseInt(val) * 10) + '%';
+  document.getElementById(`ps-${barMap[key]}-${id}`).textContent = val;
+  // recalc total
+  const score = calcPsScore(id);
+  const lbl = scoreLabel(score);
+  const pill = document.getElementById('ps-score-' + id);
+  const s = scoreStyle[lbl];
+  pill.style.background = s.bg;
+  document.getElementById('ps-score-num-' + id).style.color = s.color;
+  document.getElementById('ps-score-lbl-' + id).style.color = s.color;
+  document.getElementById('ps-score-num-' + id).textContent = score;
+  document.getElementById('ps-score-lbl-' + id).textContent = lbl;
+}
+
+function toggleCard(id) {
+  const body = document.getElementById('ps-body-' + id);
+  const btn  = document.getElementById('ps-toggle-' + id);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'flex';
+  btn.textContent = open ? 'Expand' : 'Collapse';
+}
+
+function removeCard(id) {
+  const card = document.getElementById('ps-card-' + id);
+  if (card) card.remove();
+  updateProblemCount();
+}
+
+function updateProblemCount() {
+  const count = document.querySelectorAll('#problem-cards-list .ps-card').length;
+  const el = document.getElementById('m-problems');
+  if (el) el.textContent = count;
+}
+
+function regenCard(id) {
+  const body = document.getElementById('ps-body-' + id);
+  const orig = body.style.display;
+  body.style.opacity = '0.4';
+  setTimeout(() => { body.style.opacity = '1'; }, 1200);
+}
+
+function generateAllProblems() {
+  const btn = event.target;
+  btn.textContent = '⟳ Generating…'; btn.disabled = true;
+  setTimeout(() => { btn.textContent = '✦ Re-generate all'; btn.disabled = false; }, 1800);
+}
+
+let nextCardId = 3;
+function addProblemCard() {
+  const id = nextCardId++;
+  psWeights[id] = { customer:5, revenue:5, strategic:5, volume:5 };
+  const score = calcPsScore(id);
+  const lbl = scoreLabel(score);
+  const s = scoreStyle[lbl];
+  const card = document.createElement('div');
+  card.className = 'ps-card'; card.id = 'ps-card-' + id;
+  card.innerHTML = `
+    <div class="ps-card-header">
+      <div class="ps-card-left">
+        <span class="ps-rank">#${document.querySelectorAll('#problem-cards-list .ps-card').length + 1}</span>
+        <div class="ps-title" id="ps-title-${id}">New problem statement</div>
+      </div>
+      <div class="ps-card-right">
+        <div class="ps-score-pill" id="ps-score-${id}" style="background:${s.bg}">
+          <span class="ps-score-num" id="ps-score-num-${id}" style="color:${s.color}">${score}</span>
+          <span class="ps-score-label" id="ps-score-lbl-${id}" style="color:${s.color}">${lbl}</span>
+        </div>
+        <button class="ws-btn" onclick="toggleCard(${id})" id="ps-toggle-${id}">Collapse</button>
+        <button class="ws-btn" onclick="regenCard(${id})">✦</button>
+        <button class="ins-del" onclick="removeCard(${id})" style="font-size:15px">×</button>
+      </div>
+    </div>
+    <div class="ps-card-body" id="ps-body-${id}" style="display:flex">
+      <div class="ps-section">
+        <div class="ps-section-label">Problem statement</div>
+        <textarea class="field-input ps-textarea" id="ps-stmt-${id}" rows="3" placeholder="Describe who is affected, what the problem is, and why it matters…"></textarea>
+      </div>
+      <div class="ps-two-col">
+        <div class="ps-section">
+          <div class="ps-section-label">Target audience segment</div>
+          <div class="ps-segment-cards" id="ps-segs-${id}"></div>
+          <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addSegment(${id})">+ Add segment</button>
+        </div>
+        <div class="ps-section">
+          <div class="ps-section-label">Priority score</div>
+          <div class="ps-score-breakdown" id="ps-score-breakdown-${id}">
+            ${['customer','revenue','strategic','volume'].map((k,i) => {
+              const labels = ['Customer impact','Revenue potential','Strategic fit','Insight volume'];
+              const keys = ['c','r','s','v'];
+              return `<div class="ps-score-mini-row">
+                <span class="ps-mini-label">${labels[i]}</span>
+                <div class="ps-mini-bar-wrap"><div class="ps-mini-bar" style="width:50%"></div></div>
+                <input type="range" min="1" max="10" value="5" class="ps-mini-slider" oninput="updatePsScore(${id},'${k}',this.value)">
+                <span class="ps-mini-val" id="ps-${keys[i]}-${id}">5</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="ps-section" style="margin-top:0">
+        <div class="ps-section-label">Success metrics <span style="font-weight:400;color:var(--text-tertiary)">— how do we know when this is solved?</span></div>
+        <div class="ps-metrics-list" id="ps-metrics-${id}"></div>
+        <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="addMetricRow(${id})">+ Add metric</button>
+      </div>
+    </div>`;
+  document.getElementById('problem-cards-list').appendChild(card);
+  updateProblemCount();
+  card.querySelector('textarea').focus();
+}
+
+function addSegment(id) {
+  const name = prompt('Segment name (e.g. "Enterprise accounts"):');
+  if (!name) return;
+  const tag = document.createElement('div');
+  tag.className = 'ps-seg-tag';
+  tag.innerHTML = `${name} <span class="tag-x" onclick="this.closest('.ps-seg-tag').remove()">×</span>`;
+  document.getElementById('ps-segs-' + id).appendChild(tag);
+}
+
+function addMetricRow(id) {
+  const row = document.createElement('div');
+  row.className = 'ps-metric-row';
+  row.innerHTML = `<input type="text" class="field-input ps-metric-name" placeholder="Metric name…"><input type="text" class="field-input ps-metric-target" placeholder="Target (e.g. ↓ 30% in 60d)" style="width:180px;flex-shrink:0"><button class="ins-del" onclick="this.closest('.ps-metric-row').remove()">×</button>`;
+  document.getElementById('ps-metrics-' + id).appendChild(row);
+  row.querySelector('input').focus();
+}
+
+// ─── SCHEDULE ─────────────────────────────────
+function openScheduleModal() { document.getElementById('schedule-modal').classList.add('open'); }
+function saveSchedule() {
+  const freq=document.getElementById('sched-freq').value, day=document.getElementById('sched-day').value, time=document.getElementById('sched-time').value;
+  document.getElementById('m-next-run').textContent = day.slice(0,3);
+  document.getElementById('m-next-run-sub').textContent = freq+' · '+time;
+  document.getElementById('cfg-freq').textContent = freq;
+  document.getElementById('cfg-day').textContent = 'Every '+day;
+  document.getElementById('cfg-time').textContent = time;
+  closeModal('schedule-modal');
+}
+function runNow() {
+  const btn = document.getElementById('run-btn'); btn.textContent='⟳ Running…'; btn.disabled=true;
+  setTimeout(()=>{
+    btn.textContent='✓ Done';
+    document.getElementById('sched-meta').innerHTML='Last run: Just now · 4 insights found · <span style="color:#4a9d6f">↑ 2 from last week</span>';
+    setTimeout(()=>{ btn.textContent='▶ Run now'; btn.disabled=false; },1500);
+  }, 2000);
+}
+
+// ─── AI CHAT ──────────────────────────────────
+const aiAnswers = {
+  enterprise: q => `<strong>Top 3 feedback themes from enterprise users:</strong><ul><li><strong>Bulk export missing</strong> — blocking procurement sign-off on 3+ deals this quarter.</li><li><strong>Slow one-by-one workflow</strong> — users with 500+ records spending 2–3 hours on tasks that should take minutes.</li><li><strong>Lack of format options</strong> — CSV and Excel requested specifically; PDF not useful for downstream processing.</li></ul>Confidence: <strong>High</strong> — 3 direct quotes and 2 sales tickets corroborate this.`,
+  urgent: q => `The insight with <strong>highest urgency</strong>:<br><br><em>"Sales asking for CSV export before enterprise QBR"</em> (Source: Internal · Urgency: High)<br><br>This is time-sensitive — QBRs are make-or-break moments for renewal and upsell. Missing this could directly impact ARR. Treat it as the top priority for your problem statement.`,
+  feedback: q => { const fb=insights.filter(s=>s.type==='Feedback'); return fb.length?`<strong>Feedback insights summary (${fb.length} total):</strong><ul>${fb.map(f=>`<li>${f.text} <span style="opacity:0.6;font-size:11px">— ${f.source}</span></li>`).join('')}</ul>Dominant sentiment: <strong>frustration with workflow inefficiency</strong>. Users aren't just inconvenienced — the product is blocking their job.`:'No feedback insights captured yet.'; },
+  market: q => { const mt=insights.filter(s=>s.type==='Market trend'); return mt.length?`<strong>Market trends (${mt.length} captured):</strong><ul>${mt.map(m=>`<li>${m.text}</li>`).join('')}</ul>Bulk export is becoming a <strong>baseline expectation</strong>. Shipping now prevents competitive disadvantage — urgency is high.`:'No market trend insights yet.'; },
+  segment: q => `<strong>Most affected segment:</strong> Enterprise accounts (250+ seats)<br><br>Evidence:<ul><li>2 of ${insights.length} insights directly impact enterprise deals</li><li>Internal sales flagged deal risk tied to this feature gap</li><li>NPS detractors skew toward high-seat-count accounts</li></ul><strong>Secondary segment:</strong> Power users with 100+ records — same pain, lower revenue impact per user.`,
+  default: q => `Based on your <strong>${insights.length} insights</strong> across ${new Set(insights.map(s=>s.source)).size} sources, here's what stands out:<ul><li>The most urgent theme is <strong>bulk data export friction</strong> — appearing in support, sales, and NPS channels.</li><li>Enterprise accounts are disproportionately affected, with deal-blocking implications.</li><li>Market trends confirm this is becoming table-stakes among competitors.</li></ul>Is there a specific angle you'd like me to dig into?`,
+};
+function getResponse(q) {
+  const l = q.toLowerCase();
+  if (l.includes('enterprise') && (l.includes('feedback')||l.includes('pain')||l.includes('top'))) return aiAnswers.enterprise(q);
+  if (l.includes('urgent')||l.includes('highest')) return aiAnswers.urgent(q);
+  if (l.includes('feedback')) return aiAnswers.feedback(q);
+  if (l.includes('market')) return aiAnswers.market(q);
+  if (l.includes('segment')||l.includes('affected')) return aiAnswers.segment(q);
+  return aiAnswers.default(q);
+}
+function addMsg(role, html) {
+  const msgs = document.getElementById('chat-messages');
+  const d = document.createElement('div'); d.className='chat-msg '+role;
+  d.innerHTML = role==='user'
+    ? `<div class="chat-avatar usr">PM</div><div class="chat-bubble">${html}</div>`
+    : `<div class="chat-avatar ai">✦</div><div class="chat-bubble">${html}</div>`;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping() {
+  const msgs=document.getElementById('chat-messages');
+  const d=document.createElement('div'); d.className='chat-msg ai'; d.id='typing';
+  d.innerHTML=`<div class="chat-avatar ai">✦</div><div class="chat-bubble" style="padding:10px 13px"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight;
+}
+function askQ(q) {
+  if (!q.trim()) return;
+  document.getElementById('chat-sugs').style.display='none';
+  addMsg('user', q);
+  addTyping();
+  setTimeout(()=>{ const t=document.getElementById('typing'); if(t) t.remove(); addMsg('ai', getResponse(q)); }, 900+Math.random()*600);
+}
+function useSug(btn) { askQ(btn.textContent); }
+function sendChat() { const inp=document.getElementById('chat-input'); const q=inp.value.trim(); if(!q) return; inp.value=''; inp.style.height='auto'; askQ(q); }
+function handleChatKey(e) {
+  if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); }
+  setTimeout(()=>{ const t=e.target; t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,100)+'px'; },0);
+}
+
+// ─── STEP NAV ─────────────────────────────────
+const steps = [
+  { num:'Step 1 of 5', title:'Inbound understanding', desc:'Capture incoming insights, run scheduled analysis, and synthesise into problem statements, target segments, and success metrics.', inputs:['Customer feedback','Support tickets','Stakeholder requests','Market trends'], outputs:['Problem statements (ranked)','Target audience segment','Success metrics'] },
+  { num:'Step 2 of 5', title:'Competitor analysis', desc:'Confirm the selected problem, map competitors, analyse features, and agree on what to build.', inputs:['Selected problem statement','Target audience segment','Success metrics'], outputs:['Feature comparison','Applicability assessment','Recommended features'] },
+  { num:'Step 3 of 5', title:'Product design', desc:'Define the solution space before any wireframes.', inputs:['Recommended features','Target audience','Success metrics'], outputs:['User stories','Feature list','Design brief'] },
+  { num:'Step 4 of 5', title:'Prototype', desc:'Build the smallest testable version. Validate fast.', inputs:['Design brief','User stories','Wireframes'], outputs:['Clickable prototype','Test results','Iteration log'] },
+  { num:'Step 5 of 5', title:'GTM', desc:'Messaging, channels, pricing, and launch sequencing.', inputs:['Validated prototype','Target segments','Competitive positioning'], outputs:['Launch plan','Messaging framework','Pricing model','Success criteria'] },
+];
+let current=0;
+function setStep(i) {
+  document.querySelectorAll('.step-tab').forEach((t,idx)=>{ t.classList.toggle('active',idx===i); t.classList.toggle('done',idx<i); document.getElementById('circle-'+idx).textContent=idx<i?'✓':(idx+1); });
+  document.querySelectorAll('.step-panel').forEach((p,idx)=>p.classList.toggle('active',idx===i));
+  const s=steps[i];
+  document.getElementById('sidebar-num').textContent=s.num;
+  document.getElementById('sidebar-title').textContent=s.title;
+  document.getElementById('sidebar-desc').textContent=s.desc;
+  document.getElementById('sidebar-inputs').innerHTML=s.inputs.map(x=>`<div class="io-item in"><div class="io-dot"></div>${x}</div>`).join('');
+  document.getElementById('sidebar-outputs').innerHTML=s.outputs.map(x=>`<div class="io-item out"><div class="io-dot"></div>${x}</div>`).join('');
+  document.getElementById('progress-fill').style.width=Math.round((i+1)/5*100)+'%';
+  document.getElementById('progress-label').textContent=(i+1)+' / 5';
+  current=i;
+  if (i===1) s2Init();
+  if (i===2) s3Init();
+  if (i===3) s4Init();
+}
+
+// ─── STEP 2 ───────────────────────────────────
+
+// ── Tab switching ──
+const s2Tabs = ['brief','competitors','analysis','recommend'];
+function s2Show(id) {
+  s2Tabs.forEach((t,i) => {
+    document.getElementById('s2-'+t).classList.toggle('active', t===id);
+    document.querySelectorAll('#s2-tabs .inner-tab')[i].classList.toggle('active', t===id);
+  });
+}
+
+// ── Problem data (mirrors Step 1 card data) ──
+const s2Problems = {
+  1: { rank:'#1', score:82, label:'Critical', scoreStyle:'background:#fee2e2;color:#9b1c1c',
+       stmt:'Enterprise and power users cannot export data in bulk, forcing manual one-at-a-time exports. This blocks enterprise sales deals, drives detractor NPS scores, and creates avoidable support load — all pointing to a critical capability gap.',
+       segments:['Enterprise accounts','Power users (100+ records)'],
+       metrics:['Bulk export adoption ≥ 60% in 90 days','Support tickets ↓ 40% in 60 days','Enterprise deal conversion ↑ 15% in 1 quarter'] },
+  2: { rank:'#2', score:61, label:'Medium', scoreStyle:'background:#e8f0ff;color:#3050b0',
+       stmt:'Two competitors launched bulk export in Q1 2025. Prospects are actively comparing during evaluations and citing this gap as a reason to choose alternatives. Without parity, we risk losing deals at the feature-checklist stage.',
+       segments:['Enterprise evaluators','Sales team'],
+       metrics:['Feature parity 100% on core features','Loss rate citing export gap ↓ to 0 in 60 days'] },
+  3: { rank:'#3', score:55, label:'High', scoreStyle:'background:#fef3c0;color:#92580a',
+       stmt:'Power users managing large datasets are spending hours on repetitive manual exports, creating compounding workflow friction. This is surfacing as NPS detractor scores and silent churn among the highest-value user cohort.',
+       segments:['Power users (SMB)','High-engagement accounts'],
+       metrics:['NPS ↑ 8 points in 90 days','Churn in power user cohort ↓ 20% in 2 quarters','Weekly active export usage ↑ 3× in 60 days'] },
+};
+
+function s2PopulateBrief() {
+  const d = s2Problems[selectedProblem] || s2Problems[1];
+  document.getElementById('s2-stmt').value = d.stmt;
+  const badge = document.getElementById('s2-score-badge');
+  badge.textContent = `${d.rank} · ${d.label} · ${d.score}`;
+  badge.style.cssText = d.scoreStyle + ';font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:20px;';
+  document.getElementById('s2-segs').innerHTML = d.segments.map(s =>
+    `<span style="display:inline-flex;align-items:center;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--tag-in-text);background:var(--tag-in-bg)">${s}</span>`).join('');
+  document.getElementById('s2-metrics').innerHTML = d.metrics.map(m =>
+    `<div style="font-size:12px;color:var(--text-secondary);padding:4px 0;border-bottom:1px solid var(--border)">${m}</div>`).join('');
+}
+
+// ── Competitors ──
+let s2Comps = [];
+let s2CompId = 1;
+const s2Suggested = [
+  { name:'Notion',      product:'Database CSV export' },
+  { name:'Airtable',    product:'Grid view bulk export' },
+  { name:'HubSpot',     product:'CRM list export' },
+  { name:'Salesforce',  product:'Reports & Data Export' },
+  { name:'Monday.com',  product:'Board export to Excel' },
+];
+
+function s2RenderChips() {
+  document.getElementById('s2-chips').innerHTML = s2Suggested.map((c,i) => {
+    const added = s2Comps.some(x => x.name===c.name);
+    return `<button class="s2-chip ${added?'added':''}" onclick="s2AddSuggested(${i})">${c.name}<span style="opacity:0.55"> · ${c.product}</span></button>`;
+  }).join('');
+}
+
+function s2AddSuggested(i) {
+  const c = s2Suggested[i];
+  if (s2Comps.some(x=>x.name===c.name)) return;
+  s2Comps.push({ id:s2CompId++, name:c.name, product:c.product });
+  s2RenderCompList(); s2RenderChips();
+}
+
+function s2AddComp() {
+  const name = document.getElementById('s2-cname').value.trim();
+  const product = document.getElementById('s2-cproduct').value.trim();
+  if (!name) { document.getElementById('s2-cname').focus(); return; }
+  if (s2Comps.some(x=>x.name===name)) return;
+  s2Comps.push({ id:s2CompId++, name, product:product||'—' });
+  document.getElementById('s2-cname').value = '';
+  document.getElementById('s2-cproduct').value = '';
+  s2RenderCompList(); s2RenderChips();
+}
+
+function s2RemoveComp(id) {
+  s2Comps = s2Comps.filter(c=>c.id!==id);
+  s2RenderCompList(); s2RenderChips();
+}
+
+function s2RenderCompList() {
+  const el = document.getElementById('s2-comp-list');
+  if (!s2Comps.length) {
+    el.innerHTML = `<div style="padding:1.25rem;text-align:center;font-size:13px;color:var(--text-tertiary);border:1px dashed var(--border);border-radius:8px">No competitors added yet — use the suggestions above or add manually below.</div>`;
+    return;
+  }
+  el.innerHTML = s2Comps.map(c => `
+    <div class="s2-comp-row">
+      <div class="s2-comp-initial">${c.name[0]}</div>
+      <div style="flex:1">
+        <div class="s2-comp-name">${c.name}</div>
+        <div class="s2-comp-product">${c.product}</div>
+      </div>
+      <button class="s2-comp-del" onclick="s2RemoveComp(${c.id})">×</button>
+    </div>`).join('');
+}
+
+// ── Feature analysis ──
+const s2Features = [
+  { name:'Bulk record export (CSV)',
+    why:'CSV export is baseline table-stakes for SaaS data tools — it maps directly to user data portability and compliance requirements. Every major competitor ships this.',
+    comp:{ Notion:'yes', Airtable:'yes', HubSpot:'yes', Salesforce:'yes', 'Monday.com':'yes' },
+    applicability:'high' },
+  { name:'Filtered / conditional export',
+    why:'Power users and enterprise ops teams need subsets, not full dumps. Filtering by date, owner, or status reduces file sizes and downstream processing time.',
+    comp:{ Notion:'no', Airtable:'yes', HubSpot:'yes', Salesforce:'yes', 'Monday.com':'partial' },
+    applicability:'high' },
+  { name:'Multi-format export (Excel, JSON)',
+    why:'Enterprise finance and legal teams require Excel specifically. JSON export unlocks developer integrations. Format variety directly removes procurement blockers.',
+    comp:{ Notion:'partial', Airtable:'yes', HubSpot:'yes', Salesforce:'yes', 'Monday.com':'yes' },
+    applicability:'medium' },
+  { name:'Column selection on export',
+    why:'GDPR-compliant teams must exclude PII fields. Sales teams want clean prospect-facing outputs without internal metadata. Reduces post-export cleanup work.',
+    comp:{ Notion:'no', Airtable:'yes', HubSpot:'yes', Salesforce:'yes', 'Monday.com':'no' },
+    applicability:'medium' },
+  { name:'Scheduled / automated export',
+    why:'Ops and analytics teams need data piped into downstream tools without manual intervention. Salesforce monetises this in higher tiers — signals strong willingness to pay.',
+    comp:{ Notion:'no', Airtable:'partial', HubSpot:'yes', Salesforce:'yes', 'Monday.com':'partial' },
+    applicability:'low' },
+];
+const s2TickSymbol = { yes:'✓', partial:'~', no:'—' };
+
+function s2RunAnalysis() {
+  if (!s2Comps.length) {
+    ['Notion','Airtable','HubSpot'].forEach(name => {
+      if (!s2Comps.some(c=>c.name===name)) {
+        const s = s2Suggested.find(x=>x.name===name);
+        if (s) s2Comps.push({ id:s2CompId++, name:s.name, product:s.product });
+      }
+    });
+    s2RenderCompList(); s2RenderChips();
+  }
+  const loader = document.getElementById('s2-analysis-loader');
+  const body   = document.getElementById('s2-analysis-body');
+  loader.style.display='block'; body.style.display='none';
+  setTimeout(() => {
+    loader.style.display='none'; body.style.display='block';
+    s2BuildTable();
+  }, 1600);
+}
+
+function s2BuildTable() {
+  const cols = s2Comps.slice(0,5);
+  document.getElementById('s2-comp-count').textContent = `${cols.length} competitor${cols.length!==1?'s':''}`;
+  document.getElementById('s2-thead').innerHTML = `<tr>
+    <th style="min-width:180px">Feature</th>
+    <th style="min-width:240px">Why competitors built it</th>
+    ${cols.map(c=>`<th style="text-align:center;min-width:80px">${c.name}</th>`).join('')}
+    <th style="min-width:100px">For our users</th>
+  </tr>`;
+  document.getElementById('s2-tbody').innerHTML = s2Features.map(f => `<tr>
+    <td><div class="s2-feat-name">${f.name}</div></td>
+    <td><div class="s2-feat-why">${f.why}</div></td>
+    ${cols.map(c => { const v=f.comp[c.name]||'no'; return `<td style="text-align:center"><span class="s2-tick ${v}">${s2TickSymbol[v]}</span></td>`; }).join('')}
+    <td><span class="s2-applic ${f.applicability}">${f.applicability.charAt(0).toUpperCase()+f.applicability.slice(1)}</span></td>
+  </tr>`).join('');
+}
+
+// ── PM Feedback ──
+let s2FbItems = [], s2FbId = 1;
+function s2AddFeedback() {
+  const inp = document.getElementById('s2-fb-input');
+  const txt = inp.value.trim(); if (!txt) { inp.focus(); return; }
+  s2FbItems.push({ id:s2FbId++, txt });
+  inp.value = ''; s2RenderFeedback();
+}
+function s2RemoveFb(id) { s2FbItems=s2FbItems.filter(f=>f.id!==id); s2RenderFeedback(); }
+function s2RenderFeedback() {
+  document.getElementById('s2-fb-list').innerHTML = s2FbItems.map(f =>
+    `<div class="s2-fb-item">${f.txt}<button class="s2-fb-del" onclick="s2RemoveFb(${f.id})">×</button></div>`).join('');
+}
+
+// ── Recommendations ──
+const s2RecData = [
+  { id:1, title:'One-click bulk CSV export', tier:'Must have', tierStyle:'background:#fee2e2;color:#9b1c1c',
+    desc:'Select all or filtered records and download as CSV in a single action. Directly unblocks enterprise deals and eliminates the top support request.',
+    effort:'S · 1–2 wks', impact:'Critical' },
+  { id:2, title:'Filtered export (date, owner, status)', tier:'Must have', tierStyle:'background:#fee2e2;color:#9b1c1c',
+    desc:'Define scope before downloading. Addresses power-user workflows and compliance teams who need selective field exports.',
+    effort:'M · 2–3 wks', impact:'High' },
+  { id:3, title:'Multi-format export (CSV + Excel)', tier:'Should have', tierStyle:'background:#fef3c0;color:#92580a',
+    desc:'Excel is a hard requirement from enterprise finance and legal. Removes the last procurement objection on feature checklists.',
+    effort:'S · 1 wk', impact:'High' },
+  { id:4, title:'Column selection on export', tier:'Should have', tierStyle:'background:#fef3c0;color:#92580a',
+    desc:'Choose which fields to include. Required for GDPR teams stripping PII and for sales teams wanting clean prospect-facing files.',
+    effort:'S · 1 wk', impact:'Medium' },
+  { id:5, title:'Scheduled / automated export', tier:'Nice to have', tierStyle:'background:#e8f0ff;color:#3050b0',
+    desc:'Auto-export on a schedule to email or cloud storage. Strong differentiator for ops-heavy enterprise accounts; best as a v2 addition.',
+    effort:'L · 3–4 wks', impact:'Medium' },
+];
+let s2SelRecs = new Set([1,2,3]);
+
+function s2BuildRecs() {
+  const loader = document.getElementById('s2-rec-loader');
+  const body   = document.getElementById('s2-rec-body');
+  loader.style.display='block'; body.style.display='none';
+  setTimeout(() => {
+    loader.style.display='none'; body.style.display='block';
+    s2RenderRecs();
+  }, 1400);
+}
+
+function s2ToggleRec(id) {
+  s2SelRecs.has(id) ? s2SelRecs.delete(id) : s2SelRecs.add(id);
+  s2RenderRecs(); s2UpdateContinue();
+}
+
+function s2RenderRecs() {
+  document.getElementById('s2-rec-list').innerHTML = s2RecData.map(r => {
+    const sel = s2SelRecs.has(r.id);
+    return `<div class="s2-rec-card ${sel?'selected':''}" onclick="s2ToggleRec(${r.id})">
+      <div class="s2-rec-check">${sel?'✓':''}</div>
+      <div class="s2-rec-info">
+        <div class="s2-rec-title">${r.title}
+          <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;${r.tierStyle}">${r.tier}</span>
+        </div>
+        <div class="s2-rec-desc">${r.desc}</div>
+        <div class="s2-rec-meta">
+          <span class="s2-meta-tag">Effort: ${r.effort}</span>
+          <span class="s2-meta-tag">Impact: ${r.impact}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  const n = s2SelRecs.size;
+  document.getElementById('s2-sel-count').textContent = `${n} feature${n!==1?'s':''} selected`;
+  s2UpdateContinue();
+}
+
+function s2UpdateContinue() {
+  const btn  = document.getElementById('s2-continue');
+  const hint = document.getElementById('s2-hint');
+  const n = s2SelRecs.size;
+  if (n > 0) {
+    btn.disabled = false; btn.style.opacity='1'; btn.style.cursor='pointer';
+    btn.textContent = `Continue to product design (${n} feature${n!==1?'s':''}) →`;
+    hint.innerHTML = `<span style="color:#2d7a50;font-weight:500">✓ ${n} feature${n!==1?'s':''} confirmed</span> — ready to carry into product design`;
+  } else {
+    btn.disabled = true; btn.style.opacity='0.4'; btn.style.cursor='not-allowed';
+    btn.textContent = 'Select features to continue →';
+    hint.textContent = 'Select at least one feature in Recommended features to continue';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 3 · PRODUCT DESIGN
+// ══════════════════════════════════════════════════════════════
+
+// ── Data ──
+const s3FeatData = [
+  { id:1, title:'One-click bulk CSV export', tier:'Must have', tierStyle:'background:#fee2e2;color:#9b1c1c', desc:'Select all or filtered records and download as CSV in a single action.', on:true },
+  { id:2, title:'Filtered export (date, owner, status)', tier:'Must have', tierStyle:'background:#fee2e2;color:#9b1c1c', desc:'Define scope before downloading for compliance and power-user workflows.', on:true },
+  { id:3, title:'Multi-format export (CSV + Excel)', tier:'Should have', tierStyle:'background:#fef3c0;color:#92580a', desc:'Excel is a hard requirement for enterprise finance and legal teams.', on:true },
+  { id:4, title:'Column selection on export', tier:'Should have', tierStyle:'background:#fef3c0;color:#92580a', desc:'Choose which fields to include — required for GDPR and clean prospect-facing files.', on:false },
+  { id:5, title:'Scheduled / automated export', tier:'Nice to have', tierStyle:'background:#e8f0ff;color:#3050b0', desc:'Auto-export on a schedule to email or cloud storage. Best as v2 addition.', on:false },
+];
+
+// Stories: generated per active feature
+const s3DefaultStories = {
+  1: [
+    'As an enterprise account manager, I want to select all records and export them in one click, so that I can prepare QBR materials without spending hours on manual exports.',
+    'As a power user with 500+ records, I want bulk export to run in the background, so that I can keep working while the file is prepared.',
+  ],
+  2: [
+    'As a compliance manager, I want to filter records by date range before exporting, so that I only share data that falls within the relevant period.',
+    'As a sales ops user, I want to filter by owner before export, so that each rep gets only their own records in the report.',
+  ],
+  3: [
+    'As a finance analyst, I want to export in Excel format (.xlsx), so that I can open the file directly in the tool my team uses without conversion.',
+    'As a power user, I want to choose between CSV and Excel at export time, so that I can match the format to the downstream system I\'m feeding.',
+  ],
+  4: [
+    'As a GDPR compliance officer, I want to select which columns are included in the export, so that I can strip PII fields before sharing the file externally.',
+  ],
+  5: [
+    'As an ops manager, I want to schedule a weekly auto-export to our shared drive, so that reporting happens without any manual action from my team.',
+  ],
+};
+
+let s3Stories = {}; // { featId: [{ id, text }] }
+let s3StoryId = 1;
+let s3ProtoSelected = new Set();
+
+// ── Tab switching ──
+const s3Tabs = ['brief','stories','scope','brief-out'];
+function s3Show(id) {
+  s3Tabs.forEach((t,i) => {
+    document.getElementById('s3-'+t).classList.toggle('active', t===id);
+    document.querySelectorAll('#s3-tabs .inner-tab')[i].classList.toggle('active', t===id);
+  });
+}
+
+// ── Populate feature list ──
+function s3RenderFeats() {
+  const list = document.getElementById('s3-feat-list');
+  const active = s3FeatData.filter(f => f.on).length;
+  document.getElementById('s3-feat-count').textContent = active + ' selected';
+
+  list.innerHTML = s3FeatData.map(f => `
+    <div class="s3-feat-row ${f.on?'':'disabled'}" id="s3-frow-${f.id}">
+      <button class="s3-feat-toggle ${f.on?'':'off'}" id="s3-ftog-${f.id}" onclick="s3ToggleFeat(${f.id})" title="${f.on?'Disable':'Enable'} this feature"></button>
+      <div style="flex:1">
+        <div class="s3-feat-title">${f.title} <span class="s3-feat-tier" style="${f.tierStyle}">${f.tier}</span></div>
+        <div class="s3-feat-desc">${f.desc}</div>
+      </div>
+      <button class="ins-del" onclick="s3RemoveFeat(${f.id})" style="font-size:15px;margin-top:1px">×</button>
+    </div>`).join('');
+}
+
+function s3ToggleFeat(id) {
+  const f = s3FeatData.find(x=>x.id===id);
+  if (f) { f.on = !f.on; s3RenderFeats(); }
+}
+
+function s3RemoveFeat(id) {
+  const idx = s3FeatData.findIndex(x=>x.id===id);
+  if (idx !== -1) { s3FeatData.splice(idx,1); s3RenderFeats(); }
+}
+
+function s3AddFeature() {
+  const title = prompt('Feature title:');
+  if (!title) return;
+  const newId = Math.max(...s3FeatData.map(f=>f.id), 0) + 1;
+  s3FeatData.push({ id:newId, title, tier:'Nice to have', tierStyle:'background:#e8f0ff;color:#3050b0', desc:'', on:true });
+  s3RenderFeats();
+}
+
+// ── Generate user stories ──
+function s3GenerateStories() {
+  const wrap = document.getElementById('s3-stories-wrap');
+  wrap.innerHTML = '<div style="padding:2rem;text-align:center"><div class="s2-dots"><span></span><span></span><span></span></div><div style="font-size:12px;color:var(--text-tertiary);margin-top:8px">Generating user stories…</div></div>';
+
+  setTimeout(() => {
+    // Build stories from active features
+    s3Stories = {};
+    s3FeatData.filter(f=>f.on).forEach(f => {
+      const defaults = s3DefaultStories[f.id] || ['As a user, I want to ' + f.title.toLowerCase() + ', so that I can achieve my goal.'];
+      s3Stories[f.id] = defaults.map(txt => ({ id: s3StoryId++, text: txt }));
+    });
+    s3RenderStories();
+    s3RenderScopeCards();
+    s3RenderProtoStories();
+  }, 1200);
+}
+
+function s3RenderStories() {
+  const wrap = document.getElementById('s3-stories-wrap');
+  const activeFeat = s3FeatData.filter(f=>f.on);
+  if (!activeFeat.length) { wrap.innerHTML='<div style="padding:2rem;text-align:center;color:var(--text-tertiary);font-size:13px">No features enabled. Enable features in the Feature brief tab.</div>'; return; }
+
+  wrap.innerHTML = activeFeat.map(f => {
+    const stories = s3Stories[f.id] || [];
+    return `<div class="s3-story-group">
+      <div class="s3-story-group-header">
+        <div class="s3-story-group-title">${f.title}</div>
+        <div style="display:flex;gap:6px">
+          <button class="ws-btn" onclick="s3AddStory(${f.id})">+ Add story</button>
+        </div>
+      </div>
+      <div class="s3-story-body" id="s3-sg-${f.id}">
+        ${stories.map(s => `
+          <div class="s3-story-row" id="s3-sr-${s.id}">
+            <textarea class="s3-story-text" rows="2" onchange="s3UpdateStory(${f.id},${s.id},this.value)">${s.text}</textarea>
+            <button class="ins-del" onclick="s3DeleteStory(${f.id},${s.id})" style="font-size:15px;margin-top:4px">×</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function s3AddStory(featId) {
+  if (!s3Stories[featId]) s3Stories[featId] = [];
+  const id = s3StoryId++;
+  s3Stories[featId].push({ id, text: 'As a [user], I want to [action], so that [benefit].' });
+  s3RenderStories();
+  s3RenderProtoStories();
+  // focus new textarea
+  setTimeout(() => { const el = document.getElementById('s3-sr-'+id); if(el) el.querySelector('textarea').focus(); }, 50);
+}
+
+function s3DeleteStory(featId, storyId) {
+  if (s3Stories[featId]) { s3Stories[featId] = s3Stories[featId].filter(s=>s.id!==storyId); }
+  s3ProtoSelected.delete(storyId);
+  s3RenderStories(); s3RenderProtoStories(); s3UpdateContinue();
+}
+
+function s3UpdateStory(featId, storyId, val) {
+  const s = (s3Stories[featId]||[]).find(x=>x.id===storyId);
+  if (s) { s.text = val; s3RenderProtoStories(); }
+}
+
+// ── Scope cards ──
+const s3ScopeData = {
+  1: { inScope:['Select all records or apply filters first','Export triggers immediately on click','CSV format, UTF-8 encoded','File named with timestamp'], outScope:['Scheduled/background export','Progress bar (v2)','Format options'], ac:'User can export ≥ 1000 records without page refresh. Export completes in < 10s for ≤ 5000 rows.' },
+  2: { inScope:['Filter by date range (from/to picker)','Filter by record owner (multi-select)','Filter by status (multi-select)','Filter state shown in export confirmation'], outScope:['Saved filter presets','Complex boolean filters'], ac:'Filtered export produces a file containing only records matching all active filters. Filter summary shown before download.' },
+  3: { inScope:['Format selector: CSV / Excel (.xlsx)','Default to CSV','Format preference persists per session'], outScope:['PDF export','Google Sheets integration','ODS format'], ac:'Both CSV and XLSX files open correctly in Excel 2016+. XLSX preserves column types (dates, numbers).' },
+  4: { inScope:['Column checkbox list','Select all / deselect all','Column order reflects UI column order'], outScope:['Custom column ordering','Column renaming'], ac:'Exported file contains only selected columns. PII columns can be fully excluded.' },
+  5: { inScope:['Schedule frequency: daily / weekly','Delivery to email'], outScope:['Cloud storage delivery','Slack notifications','In-app schedule management'], ac:'Scheduled export runs within ±5 min of configured time. User receives email with download link.' },
+};
+
+function s3RenderScopeCards() {
+  const wrap = document.getElementById('s3-scope-wrap');
+  const activeFeat = s3FeatData.filter(f=>f.on);
+  wrap.innerHTML = activeFeat.map(f => {
+    const d = s3ScopeData[f.id] || { inScope:['To be defined'], outScope:['To be defined'], ac:'To be defined' };
+    return `<div class="s3-scope-card">
+      <div class="s3-scope-header">
+        <span class="s3-feat-tier" style="${f.tierStyle}">${f.tier}</span>
+        <span style="font-size:13px;font-weight:500;color:var(--text)">${f.title}</span>
+      </div>
+      <div class="s3-scope-body">
+        <div class="s3-scope-in">
+          <div class="s3-scope-col-label"><span style="color:#4a9d6f">●</span> In scope</div>
+          <div class="s3-scope-list">${d.inScope.map(x=>`<div class="s3-scope-item"><span style="color:#4a9d6f;flex-shrink:0;margin-top:1px">✓</span><span contenteditable="true" style="outline:none">${x}</span></div>`).join('')}</div>
+          <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="s3AddScopeItem(this,'in')">+ Add</button>
+        </div>
+        <div class="s3-scope-out">
+          <div class="s3-scope-col-label"><span style="color:var(--text-tertiary)">●</span> Out of scope</div>
+          <div class="s3-scope-list">${d.outScope.map(x=>`<div class="s3-scope-item"><span style="color:var(--text-tertiary);flex-shrink:0;margin-top:1px">–</span><span contenteditable="true" style="outline:none">${x}</span></div>`).join('')}</div>
+          <button class="ws-btn" style="margin-top:8px;font-size:11px" onclick="s3AddScopeItem(this,'out')">+ Add</button>
+        </div>
+        <div class="s3-scope-ac">
+          <div class="s3-scope-col-label">Acceptance criteria</div>
+          <textarea class="field-input" rows="2" style="margin-top:4px">${d.ac}</textarea>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function s3AddScopeItem(btn, type) {
+  const icon = type==='in' ? '<span style="color:#4a9d6f;flex-shrink:0;margin-top:1px">✓</span>' : '<span style="color:var(--text-tertiary);flex-shrink:0;margin-top:1px">–</span>';
+  const div = document.createElement('div');
+  div.className = 's3-scope-item';
+  div.innerHTML = icon + '<span contenteditable="true" style="outline:none;min-width:40px" >New item</span>';
+  btn.parentElement.querySelector('.s3-scope-list').appendChild(div);
+  div.querySelector('[contenteditable]').focus();
+  // select all text
+  const range = document.createRange(); range.selectNodeContents(div.querySelector('[contenteditable]'));
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(range);
+}
+
+// ── Design brief ──
+function s3BuildBrief() {
+  const loader = document.getElementById('s3-brief-loader');
+  const body = document.getElementById('s3-brief-body');
+  loader.style.display='block'; body.style.display='none';
+
+  setTimeout(() => {
+    loader.style.display='none'; body.style.display='block';
+    // Problem & goal
+    const prob = s2Problems[selectedProblem] || s2Problems[1];
+    document.getElementById('s3-db-goal').value =
+      `Problem: ${prob.stmt}\n\nGoal: Ship bulk data export for enterprise and power users in a single sprint, unblocking QBR deal cycles and eliminating the top support ticket category.`;
+
+    // Target users
+    document.getElementById('s3-db-users').innerHTML = prob.segments.map(s =>
+      `<span style="display:inline-flex;align-items:center;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--tag-in-text);background:var(--tag-in-bg);margin:3px">${s}</span>`
+    ).join('');
+
+    // Features & AC
+    const activeFeat = s3FeatData.filter(f=>f.on);
+    document.getElementById('s3-db-feat-count').textContent = activeFeat.length + ' features';
+    document.getElementById('s3-db-feats').innerHTML = activeFeat.map(f => {
+      const ac = (s3ScopeData[f.id]||{}).ac || 'To be defined';
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">${f.title} <span class="s3-feat-tier" style="${f.tierStyle}">${f.tier}</span></div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">${f.desc}</div>
+        <div style="font-size:11px;font-family:var(--mono);color:var(--text-tertiary)">AC: ${ac}</div>
+      </div>`;
+    }).join('') || '<div style="color:var(--text-tertiary);font-size:13px">No features selected.</div>';
+
+    // Metrics
+    document.getElementById('s3-db-metrics').innerHTML = prob.metrics.map(m =>
+      `<div style="font-size:12px;color:var(--text-secondary);padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px"><span style="color:#4a9d6f">↗</span>${m}</div>`
+    ).join('');
+
+    // Constraints
+    const eng = document.getElementById('s3-eng-constraints').value;
+    const des = document.getElementById('s3-design-principles').value;
+    document.getElementById('s3-db-constraints').value = `Engineering: ${eng}\n\nDesign principles: ${des}`;
+
+    // PM notes
+    document.getElementById('s3-db-pmnotes').value = document.getElementById('s3-pm-notes').value;
+
+    // Proto stories
+    s3RenderProtoStories();
+  }, 1400);
+}
+
+function s3RenderProtoStories() {
+  const wrap = document.getElementById('s3-proto-stories');
+  if (!wrap) return;
+  const allStories = [];
+  s3FeatData.filter(f=>f.on).forEach(f => {
+    (s3Stories[f.id]||[]).forEach(s => allStories.push({ ...s, featTitle: f.title }));
+  });
+  if (!allStories.length) { wrap.innerHTML='<div style="color:var(--text-tertiary);font-size:13px">Generate user stories first.</div>'; return; }
+  wrap.innerHTML = allStories.map(s => {
+    const sel = s3ProtoSelected.has(s.id);
+    return `<div class="s3-proto-story ${sel?'selected':''}" onclick="s3ToggleProtoStory(${s.id})">
+      <div class="s3-proto-check">${sel?'✓':''}</div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:2px;font-family:var(--mono)">${s.featTitle}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5">${s.text}</div>
+      </div>
+    </div>`;
+  }).join('');
+  s3UpdateContinue();
+}
+
+function s3ToggleProtoStory(id) {
+  s3ProtoSelected.has(id) ? s3ProtoSelected.delete(id) : s3ProtoSelected.add(id);
+  s3RenderProtoStories();
+}
+
+function s3UpdateContinue() {
+  const n = s3ProtoSelected.size;
+  const btn = document.getElementById('s3-continue');
+  const hint = document.getElementById('s3-hint');
+  if (n > 0) {
+    btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer';
+    btn.textContent=`Continue to prototype (${n} stor${n===1?'y':'ies'}) →`;
+    hint.innerHTML=`<span style="color:#2d7a50;font-weight:500">✓ ${n} stor${n===1?'y':'ies'} selected</span> — ready to prototype`;
+  } else {
+    btn.disabled=true; btn.style.opacity='0.4'; btn.style.cursor='not-allowed';
+    btn.textContent='Select stories to continue →';
+    hint.textContent='Select user stories to prototype to continue';
+  }
+}
+
+// ── Init step 3 ──
+function s3Init() {
+  s3RenderFeats();
+  // Pre-select first 3 stories for proto if nothing selected yet
+  if (s3ProtoSelected.size === 0 && Object.keys(s3Stories).length === 0) {
+    // stories not generated yet — that's fine
+  }
+  s3Show('brief');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// STEP 4 · PROTOTYPE
+// ══════════════════════════════════════════════════════════════
+
+let s4FlowId = 1;
+let s4QId = 1;
+let s4IterId = 1;
+let s4CarrySet = new Set();
+
+const s4DefaultFlows = [
+  { title:'Select & export all records', steps:'Navigate to records list → click "Export" → confirm format (CSV default) → file downloads automatically' },
+  { title:'Filtered export by date + owner', steps:'Apply date range filter → apply owner filter → click "Export" → confirm scope shown → download' },
+  { title:'Format selection (CSV vs Excel)', steps:'Click "Export" → open format dropdown → select Excel → confirm → file downloads as .xlsx' },
+];
+
+const s4DefaultQuestions = [
+  { type:'task', text:'Without any guidance, please export all the records you can see on screen.' },
+  { type:'probe', text:'What did you expect to happen when you clicked "Export"? Was that what you got?' },
+  { type:'task', text:'Now export only records from last month, owned by you, in Excel format.' },
+  { type:'rating', text:'On a scale of 1–5, how confident are you that the export contained exactly the records you expected?' },
+  { type:'probe', text:'Was there anything confusing or unexpected in that flow? Walk me through your thinking.' },
+  { type:'task', text:'Imagine you need to share this data with a colleague who uses Excel. How would you do that?' },
+];
+
+const s4DefaultIterItems = [
+  { priority:'p1', title:'Add progress indicator during export', detail:'Users expected visual feedback. A simple spinner or "Preparing your export…" toast resolves anxiety. Quick win for v1.', carry:true },
+  { priority:'p1', title:'Make "Export" button more prominent', detail:'2 users scanned for it — currently buried in action menu. Elevate to top-level CTA in the records toolbar.', carry:true },
+  { priority:'p2', title:'Show record count in export confirmation', detail:'"You are about to export 347 records" — sets expectation and acts as a scope sanity check.', carry:false },
+  { priority:'p3', title:'Defer column-selection panel to v2', detail:'0 of 5 users discovered it without prompting. Default column set is sufficient for v1. Revisit in v2 with usage data.', carry:false },
+];
+
+// ── Tab switching ──
+const s4Tabs = ['brief','plan','test','results'];
+function s4Show(id) {
+  s4Tabs.forEach((t,i) => {
+    document.getElementById('s4-'+t).classList.toggle('active', t===id);
+    document.querySelectorAll('#s4-tabs .inner-tab')[i].classList.toggle('active', t===id);
+  });
+}
+
+// ── Populate brief from Step 3 ──
+function s4PopulateBrief() {
+  const list = document.getElementById('s4-stories-list');
+  const count = document.getElementById('s4-story-count');
+
+  // Collect selected stories from step 3
+  const allStories = [];
+  s3FeatData.filter(f=>f.on).forEach(f => {
+    (s3Stories[f.id]||[]).filter(s=>s3ProtoSelected.has(s.id)).forEach(s =>
+      allStories.push({ ...s, featTitle: f.title })
+    );
+  });
+
+  // Fallback if step 3 not run
+  if (!allStories.length) {
+    allStories.push(
+      { id:0, text:'As an enterprise account manager, I want to select all records and export them in one click, so that I can prepare QBR materials without spending hours on manual exports.', featTitle:'One-click bulk CSV export' },
+      { id:1, text:'As a compliance manager, I want to filter records by date range before exporting, so that I only share data that falls within the relevant period.', featTitle:'Filtered export' },
+      { id:2, text:'As a finance analyst, I want to export in Excel format (.xlsx), so that I can open the file directly in the tool my team uses.', featTitle:'Multi-format export' }
+    );
+  }
+
+  count.textContent = allStories.length;
+  list.innerHTML = allStories.map(s => `
+    <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid #4a9d6f;border-radius:6px;padding:10px 14px">
+      <div style="font-size:11px;color:var(--text-tertiary);font-family:var(--mono);margin-bottom:3px">${s.featTitle}</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5">${s.text}</div>
+    </div>`).join('');
+}
+
+// ── Generate prototype plan ──
+function s4GeneratePlan() {
+  const loader = document.getElementById('s4-plan-loader');
+  const body = document.getElementById('s4-plan-body');
+  loader.style.display='block'; body.style.display='none';
+
+  setTimeout(() => {
+    loader.style.display='none'; body.style.display='block';
+    s4RenderFlows();
+  }, 1200);
+}
+
+function s4RenderFlows() {
+  const wrap = document.getElementById('s4-flows-list');
+  // Build flows from default (or current state)
+  if (!wrap._flows) wrap._flows = s4DefaultFlows.map((f,i) => ({ id: s4FlowId++, ...f }));
+  wrap.innerHTML = wrap._flows.map((f,i) => `
+    <div class="s4-flow-row" id="s4-flow-${f.id}">
+      <div class="s4-flow-num">${i+1}</div>
+      <div class="s4-flow-content">
+        <div class="s4-flow-title" contenteditable="true" style="outline:none">${f.title}</div>
+        <div class="s4-flow-steps" contenteditable="true" style="outline:none;margin-top:3px">${f.steps}</div>
+      </div>
+      <button class="ins-del" onclick="s4RemoveFlow(${f.id})" style="font-size:15px">×</button>
+    </div>`).join('');
+}
+
+function s4AddFlow() {
+  const wrap = document.getElementById('s4-flows-list');
+  if (!wrap._flows) wrap._flows = [];
+  const id = s4FlowId++;
+  wrap._flows.push({ id, title:'New flow', steps:'Describe the steps…' });
+  s4RenderFlows();
+}
+
+function s4RemoveFlow(id) {
+  const wrap = document.getElementById('s4-flows-list');
+  if (wrap._flows) wrap._flows = wrap._flows.filter(f=>f.id!==id);
+  s4RenderFlows();
+}
+
+// ── Generate test questions ──
+function s4GenerateTests() {
+  const loader = document.getElementById('s4-test-loader');
+  const body = document.getElementById('s4-test-body');
+  loader.style.display='block'; body.style.display='none';
+
+  setTimeout(() => {
+    loader.style.display='none'; body.style.display='block';
+    s4RenderQuestions(s4DefaultQuestions.map((q,i) => ({ id: s4QId++, ...q })));
+  }, 1100);
+}
+
+let s4Questions = [];
+function s4RenderQuestions(qs) {
+  if (qs) s4Questions = qs;
+  const wrap = document.getElementById('s4-questions-list');
+  const count = document.getElementById('s4-q-count');
+  count.textContent = s4Questions.length + ' questions';
+  wrap.innerHTML = s4Questions.map(q => `
+    <div class="s4-q-row" id="s4-q-${q.id}">
+      <span class="s4-q-type ${q.type}">${q.type}</span>
+      <textarea class="s4-q-text" rows="2" onchange="s4UpdateQ(${q.id},this.value)">${q.text}</textarea>
+      <button class="ins-del" onclick="s4DeleteQ(${q.id})" style="font-size:15px">×</button>
+    </div>`).join('');
+}
+
+function s4UpdateQ(id, val) {
+  const q = s4Questions.find(x=>x.id===id); if(q) q.text=val;
+}
+function s4DeleteQ(id) {
+  s4Questions = s4Questions.filter(x=>x.id!==id);
+  s4RenderQuestions();
+}
+function s4AddQuestion() {
+  s4Questions.push({ id: s4QId++, type:'probe', text:'New question…' });
+  s4RenderQuestions();
+  setTimeout(() => {
+    const items = document.querySelectorAll('#s4-questions-list .s4-q-row');
+    if (items.length) items[items.length-1].querySelector('textarea').focus();
+  }, 50);
+}
+
+// ── Synthesise results ──
+function s4UpdateSynthBtn() { /* keep btn always enabled once results tab visible */ }
+
+function s4Synthesise() {
+  const loader = document.getElementById('s4-synth-loader');
+  const body = document.getElementById('s4-synth-body');
+  loader.style.display='block'; body.style.display='none';
+
+  setTimeout(() => {
+    loader.style.display='none'; body.style.display='block';
+
+    const sessions = document.getElementById('s4-sessions').value;
+    const completion = document.getElementById('s4-completion').value;
+    const confidence = document.getElementById('s4-confidence').value;
+    const worked = document.getElementById('s4-worked').value;
+    const friction = document.getElementById('s4-friction').value;
+
+    document.getElementById('s4-synthesis-text').value =
+`Test summary (${sessions} sessions · ${completion}% completion · avg confidence ${confidence}/5)
+
+What worked: ${worked}
+
+Key friction: ${friction}
+
+Recommendation: The core export flow is validated and ready for engineering. Two quick wins should be added to v1 scope before dev handoff: a progress indicator and a more prominent Export CTA. Column selection is de-scoped to v2 based on zero organic discovery across all sessions.`;
+
+    s4RenderIterItems();
+    s4UpdateCarryList();
+
+    // unlock continue
+    const btn = document.getElementById('s4-continue');
+    btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer';
+    document.getElementById('s4-hint').innerHTML=`<span style="color:#2d7a50;font-weight:500">✓ Synthesis complete</span> — review iteration items and continue to GTM`;
+  }, 1500);
+}
+
+function s4RenderIterItems() {
+  s4CarrySet = new Set(s4DefaultIterItems.filter(x=>x.carry).map((_,i)=>i));
+  const items = s4DefaultIterItems.map((item,i) => ({ ...item, idx:i, id: s4IterId++ }));
+  const wrap = document.getElementById('s4-iter-list');
+  document.getElementById('s4-iter-count').textContent = items.length + ' items';
+  wrap.innerHTML = items.map(item => `
+    <div class="s4-iter-item ${item.carry?'carry':''}" id="s4-ii-${item.idx}">
+      <button class="s4-carry-toggle ${item.carry?'on':''}" id="s4-ct-${item.idx}" onclick="s4ToggleCarry(${item.idx})" title="Include in dev handoff">${item.carry?'✓':''}</button>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:8px">
+          ${item.title} <span class="s4-iter-priority ${item.priority}">${item.priority==='p1'?'P1':item.priority==='p2'?'P2':'P3'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.55">${item.detail}</div>
+      </div>
+    </div>`).join('');
+}
+
+function s4ToggleCarry(idx) {
+  const el = document.getElementById('s4-ii-'+idx);
+  const btn = document.getElementById('s4-ct-'+idx);
+  if (s4CarrySet.has(idx)) {
+    s4CarrySet.delete(idx);
+    el.classList.remove('carry'); btn.classList.remove('on'); btn.textContent='';
+  } else {
+    s4CarrySet.add(idx);
+    el.classList.add('carry'); btn.classList.add('on'); btn.textContent='✓';
+  }
+  s4UpdateCarryList();
+}
+
+function s4AddIterItem() {
+  const idx = s4DefaultIterItems.length;
+  s4DefaultIterItems.push({ priority:'p2', title:'New iteration item', detail:'Describe what needs to change and why.', carry:false });
+  s4RenderIterItems();
+}
+
+function s4UpdateCarryList() {
+  const wrap = document.getElementById('s4-carry-list');
+  if (!wrap) return;
+  const carried = s4DefaultIterItems.filter((_,i) => s4CarrySet.has(i));
+  if (!carried.length) { wrap.innerHTML='<div style="font-size:12px;color:var(--text-tertiary)">No items selected — toggle ✓ above to include in dev handoff.</div>'; return; }
+  wrap.innerHTML = carried.map(item => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)">
+      <span style="color:#4a9d6f">✓</span> ${item.title}
+      <span class="s4-iter-priority ${item.priority}" style="margin-left:auto">${item.priority==='p1'?'P1':item.priority==='p2'?'P2':'P3'}</span>
+    </div>`).join('');
+}
+
+// ── Prototype modal ──
+let protoCurrentFlow = 0;
+const protoFlows = [
+  // Flow 1: Select & export all
+  `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+    body{background:#f5f5f4;display:flex;flex-direction:column;height:100vh;font-size:13px}
+    .topbar{height:44px;background:#fff;border-bottom:1px solid #e5e5e3;display:flex;align-items:center;padding:0 1.25rem;gap:12px;flex-shrink:0}
+    .topbar-title{font-weight:500;color:#1a1a18}
+    .badge{font-size:10px;padding:2px 8px;border-radius:20px;background:#f4f4f3;color:#6b6b68;font-family:monospace}
+    .toolbar{background:#fff;border-bottom:1px solid #e5e5e3;padding:8px 1.25rem;display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .search{flex:1;max-width:260px;height:30px;border:1px solid #e5e5e3;border-radius:6px;padding:0 10px;font-size:12px;color:#1a1a18;background:#fafaf9}
+    .btn{height:30px;padding:0 12px;border-radius:6px;border:1px solid #e5e5e3;background:#fff;font-size:12px;color:#6b6b68;cursor:pointer;transition:all .15s}
+    .btn:hover{border-color:#d0d0ce;color:#1a1a18}
+    .btn-primary{background:#1a1a18!important;color:#fff!important;border-color:#1a1a18!important;font-weight:500}
+    .btn-primary:hover{opacity:.85!important}
+    .table-wrap{flex:1;overflow-y:auto;padding:1rem 1.25rem}
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e5e3;border-radius:8px;overflow:hidden}
+    th{font-size:10px;font-family:monospace;text-transform:uppercase;letter-spacing:.07em;color:#a8a8a5;padding:10px 14px;text-align:left;border-bottom:1px solid #e5e5e3;background:#fafaf9;font-weight:500}
+    td{padding:10px 14px;border-bottom:1px solid #f0f0ee;font-size:12px;color:#1a1a18}
+    tr:last-child td{border-bottom:none}
+    input[type=checkbox]{cursor:pointer;accent-color:#1a1a18}
+    .status{font-size:10px;padding:2px 8px;border-radius:20px;font-family:monospace}
+    .status.new{background:#e8f0ff;color:#3050b0}
+    .status.qual{background:#f0faf4;color:#2d7a50}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;font-size:12px;padding:10px 18px;border-radius:8px;display:none;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+    .toast.show{display:flex}
+    .progress{width:120px;height:4px;background:#444;border-radius:2px;overflow:hidden}
+    .progress-bar{height:100%;background:#4a9d6f;border-radius:2px;animation:prog 2s ease forwards}
+    @keyframes prog{from{width:0}to{width:100%}}
+  </style></head><body>
+    <div class="topbar"><div class="topbar-title">Records</div><div class="badge">247 records</div></div>
+    <div class="toolbar">
+      <input class="search" placeholder="Search records…" type="text">
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn">Filter</button>
+        <button class="btn btn-primary" onclick="doExport()">↓ Export</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th><input type="checkbox" id="selAll" onchange="toggleAll(this)"></th><th>Name</th><th>Company</th><th>Status</th><th>Owner</th><th>Date added</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="toast" id="toast">
+      <span>⟳</span>
+      <div><div style="font-weight:500">Preparing your export…</div><div class="progress"><div class="progress-bar" id="pbar"></div></div></div>
+    </div>
+  <script>
+    const rows=[
+      {name:'Sarah Chen',co:'Acme Corp',status:'qual',owner:'Alex K.',date:'2025-03-14'},
+      {name:'David Park',co:'TechFlow',status:'new',owner:'Jamie L.',date:'2025-03-13'},
+      {name:'Maria Lopez',co:'Bright Ltd',status:'qual',owner:'Alex K.',date:'2025-03-12'},
+      {name:'Tom Williams',co:'Nova Inc',status:'new',owner:'Sam T.',date:'2025-03-11'},
+      {name:'Priya Sharma',co:'Zenith Co',status:'qual',owner:'Jamie L.',date:'2025-03-10'},
+    ];
+    const tbody=document.getElementById('tbody');
+    rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=\`<td><input type="checkbox" class="cb"></td><td>\${r.name}</td><td>\${r.co}</td><td><span class="status \${r.status}">\${r.status==='qual'?'Qualified':'New'}</span></td><td>\${r.owner}</td><td>\${r.date}</td>\`;
+      tbody.appendChild(tr);
+    });
+    function toggleAll(cb){document.querySelectorAll('.cb').forEach(c=>c.checked=cb.checked)}
+    function doExport(){
+      const toast=document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(()=>{
+        toast.innerHTML='<span style="color:#4a9d6f">✓</span> <div><div style="font-weight:500">Export complete</div><div style="font-size:11px;opacity:.7">records_export_2025-03-14.csv · 247 rows</div></div>';
+        setTimeout(()=>toast.classList.remove('show'),2500);
+      },2200);
+    }
+  <\/script></body></html>`,
+
+  // Flow 2: Filtered export
+  `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+    body{background:#f5f5f4;display:flex;flex-direction:column;height:100vh;font-size:13px}
+    .topbar{height:44px;background:#fff;border-bottom:1px solid #e5e5e3;display:flex;align-items:center;padding:0 1.25rem;gap:12px;flex-shrink:0}
+    .topbar-title{font-weight:500;color:#1a1a18}
+    .toolbar{background:#fff;border-bottom:1px solid #e5e5e3;padding:8px 1.25rem;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+    .filter-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid #e5e5e3;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;color:#6b6b68}
+    .filter-chip.active{border-color:#3050b0;background:#e8f0ff;color:#3050b0}
+    .filter-chip.active .x{color:#3050b0}
+    .x{font-size:14px;opacity:.5}
+    select{height:28px;border:1px solid #e5e5e3;border-radius:6px;font-size:12px;padding:0 8px;color:#1a1a18;background:#fff;outline:none}
+    .btn{height:30px;padding:0 12px;border-radius:6px;border:1px solid #e5e5e3;background:#fff;font-size:12px;color:#6b6b68;cursor:pointer}
+    .btn-primary{background:#1a1a18!important;color:#fff!important;border-color:#1a1a18!important;font-weight:500}
+    .panel{background:#fff;border:1px solid #e5e5e3;border-radius:8px;margin:1rem 1.25rem;padding:1.25rem}
+    .panel-title{font-weight:500;font-size:14px;margin-bottom:1rem;color:#1a1a18}
+    .field{margin-bottom:12px}
+    .field label{display:block;font-size:11px;color:#6b6b68;margin-bottom:5px;font-family:monospace;text-transform:uppercase;letter-spacing:.06em}
+    .field input,.field select{width:100%;height:34px;border:1px solid #e5e5e3;border-radius:6px;padding:0 10px;font-size:13px;color:#1a1a18;background:#fafaf9;outline:none}
+    .scope-badge{background:#f0faf4;border:1px solid #b8e4c8;border-radius:8px;padding:10px 14px;font-size:12px;color:#2d7a50;margin-top:12px}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;font-size:12px;padding:10px 18px;border-radius:8px;display:none;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+    .toast.show{display:flex}
+    .progress{width:120px;height:4px;background:#444;border-radius:2px;overflow:hidden}
+    .progress-bar{height:100%;background:#4a9d6f;border-radius:2px;animation:prog 2s ease forwards}
+    @keyframes prog{from{width:0}to{width:100%}}
+  </style></head><body>
+    <div class="topbar"><div style="font-weight:500;color:#1a1a18">Records · Filtered export</div></div>
+    <div class="toolbar">
+      <span style="font-size:12px;color:#6b6b68">Active filters:</span>
+      <div class="filter-chip active">Date: Mar 2025 <span class="x">×</span></div>
+      <div class="filter-chip active">Owner: Alex K. <span class="x">×</span></div>
+      <div class="filter-chip">+ Add filter</div>
+      <div style="margin-left:auto"><button class="btn btn-primary" onclick="showPanel()">↓ Export filtered</button></div>
+    </div>
+    <div class="panel" id="export-panel" style="display:none">
+      <div class="panel-title">Export filtered records</div>
+      <div class="field"><label>Date range</label><input type="text" value="Mar 1, 2025 – Mar 31, 2025" readonly></div>
+      <div class="field"><label>Owner</label><input type="text" value="Alex K." readonly></div>
+      <div class="field"><label>Format</label><select><option>CSV (.csv)</option><option>Excel (.xlsx)</option></select></div>
+      <div class="scope-badge">↓ This export will include <strong>89 records</strong> matching your filters</div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
+        <button class="btn" onclick="document.getElementById('export-panel').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="doExport()">Confirm &amp; export</button>
+      </div>
+    </div>
+    <div style="padding:1rem 1.25rem;color:#6b6b68;font-size:13px" id="empty-hint">Click "Export filtered" to see the export confirmation panel.</div>
+    <div class="toast" id="toast"></div>
+  <script>
+    function showPanel(){document.getElementById('export-panel').style.display='block';document.getElementById('empty-hint').style.display='none';}
+    function doExport(){
+      document.getElementById('export-panel').style.display='none';
+      const t=document.getElementById('toast');
+      t.classList.add('show');
+      t.innerHTML='<span>⟳</span><div><div style="font-weight:500">Preparing filtered export…</div><div class="progress"><div class="progress-bar"></div></div></div>';
+      setTimeout(()=>{
+        t.innerHTML='<span style="color:#4a9d6f">✓</span><div><div style="font-weight:500">Export complete</div><div style="font-size:11px;opacity:.7">filtered_export_alex-k_mar-2025.csv · 89 rows</div></div>';
+        setTimeout(()=>t.classList.remove('show'),2500);
+      },2200);
+    }
+  <\/script></body></html>`,
+
+  // Flow 3: Format selection
+  `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+    body{background:#f5f5f4;display:flex;flex-direction:column;height:100vh;font-size:13px}
+    .topbar{height:44px;background:#fff;border-bottom:1px solid #e5e5e3;display:flex;align-items:center;padding:0 1.25rem;gap:12px;flex-shrink:0}
+    .modal-bg{flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+    .modal{background:#fff;border:1px solid #e5e5e3;border-radius:10px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,.1)}
+    .mh{padding:1rem 1.25rem;border-bottom:1px solid #e5e5e3;display:flex;align-items:center;justify-content:space-between}
+    .mh-title{font-size:14px;font-weight:500;color:#1a1a18}
+    .mb{padding:1.25rem;display:flex;flex-direction:column;gap:12px}
+    .fmt-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:2px solid #e5e5e3;border-radius:8px;cursor:pointer;transition:all .15s}
+    .fmt-opt:hover{border-color:#d0d0ce}
+    .fmt-opt.sel{border-color:#1a1a18;background:#fafaf9}
+    .fmt-icon{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+    .fmt-title{font-size:13px;font-weight:500;color:#1a1a18;margin-bottom:2px}
+    .fmt-sub{font-size:11px;color:#6b6b68;line-height:1.5}
+    .radio{width:16px;height:16px;border-radius:50%;border:2px solid #e5e5e3;margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-left:auto}
+    .fmt-opt.sel .radio{border-color:#1a1a18}
+    .radio-dot{width:8px;height:8px;border-radius:50%;background:#1a1a18;display:none}
+    .fmt-opt.sel .radio-dot{display:block}
+    .mf{padding:.9rem 1.25rem;border-top:1px solid #e5e5e3;display:flex;justify-content:flex-end;gap:8px}
+    .btn{height:32px;padding:0 14px;border-radius:6px;border:1px solid #e5e5e3;background:#fff;font-size:12px;color:#6b6b68;cursor:pointer}
+    .btn-p{background:#1a1a18!important;color:#fff!important;border-color:#1a1a18!important;font-weight:500}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;font-size:12px;padding:10px 18px;border-radius:8px;display:none;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+    .toast.show{display:flex}
+    .progress{width:120px;height:4px;background:#444;border-radius:2px;overflow:hidden}
+    .progress-bar{height:100%;background:#4a9d6f;border-radius:2px;animation:prog 2s ease forwards}
+    @keyframes prog{from{width:0}to{width:100%}}
+  </style></head><body>
+    <div class="topbar"><div style="font-weight:500;color:#1a1a18">Records · Export</div></div>
+    <div class="modal-bg">
+      <div class="modal">
+        <div class="mh"><div class="mh-title">Export records</div><span style="cursor:pointer;font-size:18px;color:#a8a8a5">×</span></div>
+        <div class="mb">
+          <div style="font-size:12px;color:#6b6b68">Choose your export format. Your selection will be remembered for next time.</div>
+          <div class="fmt-opt sel" id="csv" onclick="selectFmt('csv')">
+            <div class="fmt-icon" style="background:#f0faf4;font-size:16px">📄</div>
+            <div style="flex:1"><div class="fmt-title">CSV (.csv)</div><div class="fmt-sub">Best for data processing, Python/R scripts, and most CRM imports</div></div>
+            <div class="radio"><div class="radio-dot"></div></div>
+          </div>
+          <div class="fmt-opt" id="xlsx" onclick="selectFmt('xlsx')">
+            <div class="fmt-icon" style="background:#e8f4ff;font-size:16px">📊</div>
+            <div style="flex:1"><div class="fmt-title">Excel (.xlsx)</div><div class="fmt-sub">Best for finance, legal, and teams working directly in Microsoft Excel</div></div>
+            <div class="radio"><div class="radio-dot"></div></div>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn">Cancel</button>
+          <button class="btn btn-p" onclick="doExport()">Export →</button>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast"></div>
+  <script>
+    let sel='csv';
+    function selectFmt(f){
+      sel=f;
+      document.getElementById('csv').classList.toggle('sel',f==='csv');
+      document.getElementById('xlsx').classList.toggle('sel',f==='xlsx');
+    }
+    function doExport(){
+      const t=document.getElementById('toast');
+      t.classList.add('show');
+      t.innerHTML='<span>⟳</span><div><div style="font-weight:500">Preparing your export…</div><div class="progress"><div class="progress-bar"></div></div></div>';
+      setTimeout(()=>{
+        const ext=sel==='xlsx'?'xlsx':'csv';
+        t.innerHTML='<span style="color:#4a9d6f">✓</span><div><div style="font-weight:500">Export complete</div><div style="font-size:11px;opacity:.7">records_export_2025-03-14.'+ext+' · 247 rows</div></div>';
+        setTimeout(()=>t.classList.remove('show'),2500);
+      },2200);
+    }
+  <\/script></body></html>`
+];
+
+const protoFlowLabels = ['Flow 1 of 3 — Select & export all','Flow 2 of 3 — Filtered export','Flow 3 of 3 — Format selection'];
+
+function s4OpenProto() {
+  protoCurrentFlow = 0;
+  s4UpdateProtoModal();
+  document.getElementById('proto-modal').classList.add('open');
+}
+function s4UpdateProtoModal() {
+  document.getElementById('proto-iframe').srcdoc = protoFlows[protoCurrentFlow];
+  document.getElementById('proto-flow-label').textContent = protoFlowLabels[protoCurrentFlow];
+  document.getElementById('proto-prev').disabled = protoCurrentFlow === 0;
+  document.getElementById('proto-prev').style.opacity = protoCurrentFlow === 0 ? '0.4' : '1';
+  document.getElementById('proto-next').disabled = protoCurrentFlow === protoFlows.length - 1;
+  document.getElementById('proto-next').style.opacity = protoCurrentFlow === protoFlows.length - 1 ? '0.4' : '1';
+}
+function protoNav(dir) {
+  protoCurrentFlow = Math.max(0, Math.min(protoFlows.length-1, protoCurrentFlow + dir));
+  s4UpdateProtoModal();
+}
+
+// ── Init step 4 ──
+function s4Init() {
+  s4PopulateBrief();
+  s4Show('brief');
+  // init flows
+  const wrap = document.getElementById('s4-flows-list');
+  if (wrap) wrap._flows = s4DefaultFlows.map((f,i) => ({ id: s4FlowId++, ...f }));
+}
+
+// ── Init on entry ──
+function s2Init() {
+  s2PopulateBrief();
+  s2Show('brief');
+  if (!s2Comps.length) {
+    ['Notion','Airtable','HubSpot'].forEach(name => {
+      const s = s2Suggested.find(x=>x.name===name);
+      if (s) s2Comps.push({ id:s2CompId++, name:s.name, product:s.product });
+    });
+  }
+  s2RenderCompList(); s2RenderChips();
+  s2BuildTable();
+  s2RenderRecs();
+  s2UpdateContinue();
+}
+
+// ─── INIT ─────────────────────────────────────
+renderInsights();
+showTab('insights');
+setStep(0);
+</script>
+</body>
+</html>
